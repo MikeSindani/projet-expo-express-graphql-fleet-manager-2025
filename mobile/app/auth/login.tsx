@@ -1,41 +1,46 @@
+import { FormInput } from '@/components/ui/form/FormInput';
+import { FormPasswordInput } from '@/components/ui/form/FormPasswordInput';
 import { useAuth } from '@/contexts/AuthContext';
 import { graphqlClient } from '@/lib/graphql-client';
 import { LOGIN } from '@/lib/graphql-queries';
+import { loginSchema } from '@/schemas/auth';
+import { useForm } from '@tanstack/react-form';
+import { zodValidator } from '@tanstack/zod-form-adapter';
 import { useRouter } from 'expo-router';
-import { Lock, Mail } from 'lucide-react-native';
+import { Mail } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const router = useRouter();
 
-  const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
-      return;
-    }
+  const form = useForm({
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+    validatorAdapter: zodValidator(),
+    onSubmit: async ({ value }) => {
+      setLoading(true);
+      try {
+        const data = await graphqlClient.mutate(LOGIN, {
+          email: value.email,
+          password: value.password,
+        });
 
-    setLoading(true);
-    try {
-      const data = await graphqlClient.mutate(LOGIN, {
-        email,
-        password,
-      });
-
-      if (data?.login) {
-        await signIn(data.login.token, data.login.user);
+        if (data?.login) {
+          await signIn(data.login.token, data.login.user);
+        }
+      } catch (error: any) {
+        Alert.alert('Erreur', error.message || 'Connexion échouée');
+      } finally {
+        setLoading(false);
       }
-    } catch (error: any) {
-      Alert.alert('Erreur', error.message || 'Connexion échouée');
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -44,7 +49,6 @@ export default function LoginScreen() {
       </View>
       <View className="p-6">
         {/* Header */}
-
         <Text className="text-3xl font-bold text-gray-900 mb-2">
           Connexion par Email
         </Text>
@@ -53,52 +57,51 @@ export default function LoginScreen() {
         </Text>
 
         {/* Email Input */}
-        <View className="mb-4">
-          <Text className="text-sm font-medium text-gray-700 mb-2">
-            Email
-          </Text>
-          <View className="flex-row items-center border border-gray-300 rounded-xl px-4 py-3">
-            <Mail size={20} color="#6b7280" />
-            <TextInput
-              className="flex-1 ml-3 text-base text-gray-900"
+        <form.Field
+          name="email"
+          validators={{
+            onChange: loginSchema.shape.email,
+          }}
+          children={(field) => (
+            <FormInput
+              field={field}
+              label="Email"
               placeholder="votre@email.com"
-              value={email}
-              onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              icon={Mail}
               editable={!loading}
             />
-          </View>
-        </View>
+          )}
+        />
 
         {/* Password Input */}
-        <View className="mb-6">
-          <Text className="text-sm font-medium text-gray-700 mb-2">
-            Mot de passe
-          </Text>
-          <View className="flex-row items-center border border-gray-300 rounded-xl px-4 py-3 mb-2">
-            <Lock size={20} color="#6b7280" />
-            <TextInput
-              className="flex-1 ml-3 text-base text-gray-900"
+        <form.Field
+          name="password"
+          validators={{
+            onChange: loginSchema.shape.password,
+          }}
+          children={(field) => (
+            <FormPasswordInput
+              field={field}
+              label="Mot de passe"
               placeholder="Votre mot de passe"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
               editable={!loading}
             />
-          </View>
-          <TouchableOpacity 
-            onPress={() => router.push('/auth/forgot-password')}
-            className="self-end"
-          >
-            <Text className="text-blue-600 text-sm font-medium">Mot de passe oublié ?</Text>
-          </TouchableOpacity>
-        </View>
+          )}
+        />
+        
+        <TouchableOpacity 
+          onPress={() => router.push('/auth/forgot-password')}
+          className="self-end mb-4"
+        >
+          <Text className="text-blue-600 text-sm font-medium">Mot de passe oublié ?</Text>
+        </TouchableOpacity>
 
         {/* Login Button */}
         <TouchableOpacity
           className={`rounded-xl p-4 mb-4 ${loading ? 'bg-blue-400' : 'bg-blue-600'}`}
-          onPress={handleLogin}
+          onPress={form.handleSubmit}
           disabled={loading}
         >
           {loading ? (

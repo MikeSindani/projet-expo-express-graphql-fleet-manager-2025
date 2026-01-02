@@ -49,8 +49,9 @@ export default function ReportsScreen() {
             const distance = rapport.kilometrage;
 
             return (
-              <View 
+              <TouchableOpacity 
                 key={rapport.id} 
+                onPress={() => router.push(`/report-detail/${rapport.id}` as any)}
                 className="bg-white dark:bg-gray-800 rounded-2xl p-4 mb-4 shadow-sm"
               >
                 <View className="flex-row justify-between mb-4">
@@ -117,7 +118,7 @@ export default function ReportsScreen() {
                     </Text>
                   </View>
                 )}
-              </View>
+              </TouchableOpacity>
             );
           })
         )}

@@ -1,0 +1,1 @@
+export const GRAPHQL_URL = process.env.EXPO_PUBLIC_GRAPHQL_HTTP_URL || 'http://192.168.1.217:4001/graphql';

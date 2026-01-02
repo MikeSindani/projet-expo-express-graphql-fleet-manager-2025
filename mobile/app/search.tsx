@@ -146,7 +146,7 @@ export default function SearchScreen() {
                     className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-100 dark:border-gray-700"
                     onPress={() => {
                       // Navigate to driver details
-                      router.back();
+                      router.push(`/driver-detail/${chauffeur.id}` as any);
                     }}
                   >
                     <View className="flex-row items-center">
@@ -185,7 +185,7 @@ export default function SearchScreen() {
                     className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-100 dark:border-gray-700"
                     onPress={() => {
                       // Navigate to vehicle details
-                      router.back();
+                      router.push(`/vehicle-detail/${vehicule.id}` as any);
                     }}
                   >
                     <View className="flex-row items-center">
@@ -222,7 +222,7 @@ export default function SearchScreen() {
                     className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-100 dark:border-gray-700"
                     onPress={() => {
                       // Navigate to report details
-                      router.back();
+                      router.push(`/report-detail/${rapport.id}` as any);
                     }}
                   >
                     <View className="flex-row items-center">

@@ -1,9 +1,10 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useFleet } from '@/contexts/FleetContext';
+import { getImageUrl } from '@/utils/images';
 import { useRouter } from 'expo-router';
 import { Check, Mail, Phone, Plus, ShieldAlert, User as UserIcon, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function DriversScreen() {
@@ -85,8 +86,16 @@ export default function DriversScreen() {
               return (
                 <View key={chauffeur.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 border-l-4 border-yellow-500 shadow-sm">
                   <View className="flex-row mb-4">
-                    <View className="w-14 h-14 rounded-full bg-blue-600 items-center justify-center mr-3">
-                      <Text className="text-xl font-bold text-white">{initials}</Text>
+                    <View className="w-14 h-14 rounded-full bg-blue-600 items-center justify-center mr-3 overflow-hidden">
+                      {chauffeur.image ? (
+                        <Image 
+                          source={{ uri: getImageUrl(chauffeur.image) as string }} 
+                          className="w-full h-full"
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <Text className="text-xl font-bold text-white">{initials}</Text>
+                      )}
                     </View>
                     <View className="flex-1 justify-center">
                       <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
@@ -147,10 +156,22 @@ export default function DriversScreen() {
                 : '??';
 
               return (
-                <View key={chauffeur.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 shadow-sm">
+                <TouchableOpacity 
+                  key={chauffeur.id} 
+                  onPress={() => router.push(`/driver-detail/${chauffeur.id}` as any)}
+                  className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4 shadow-sm"
+                >
                   <View className="flex-row mb-4">
-                    <View className="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-700 items-center justify-center mr-3">
-                      <Text className="text-xl font-bold text-gray-600 dark:text-white">{initials}</Text>
+                    <View className="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-700 items-center justify-center mr-3 overflow-hidden">
+                      {chauffeur.image ? (
+                        <Image 
+                          source={{ uri: getImageUrl(chauffeur.image) as string }} 
+                          className="w-full h-full"
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <Text className="text-xl font-bold text-gray-600 dark:text-white">{initials}</Text>
+                      )}
                     </View>
                     <View className="flex-1 justify-center">
                       <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
@@ -169,7 +190,10 @@ export default function DriversScreen() {
                     {/* Block Button for Managers */}
                     {isManager && (
                       <TouchableOpacity 
-                        onPress={() => confirmBlock(chauffeur.id)}
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          confirmBlock(chauffeur.id);
+                        }}
                         disabled={processingId === chauffeur.id}
                         className="bg-red-50 dark:bg-red-900/20 p-2 rounded-lg justify-center items-center"
                       >
@@ -185,7 +209,7 @@ export default function DriversScreen() {
                     <Text className="text-gray-500 dark:text-gray-400 font-semibold mr-2">Permis:</Text>
                     <Text className="text-gray-900 dark:text-white font-bold flex-1">{chauffeur.licenseNumber || "N/A"}</Text>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })
           }

@@ -1,21 +1,25 @@
 import * as ImagePicker from 'expo-image-picker';
-import { Camera, User } from 'lucide-react-native';
+import { Camera, Upload } from 'lucide-react-native';
 import React from 'react';
 import { Alert, Image, Text, TouchableOpacity, View } from 'react-native';
 
-interface ProfileImagePickerProps {
+interface DocumentImagePickerProps {
   imageUri?: string | null;
   onImageSelected: (uri: string) => void;
-  size?: number;
+  width?: number;
+  height?: number;
   editable?: boolean;
+  label?: string;
 }
 
-export default function ProfileImagePicker({
+export default function DocumentImagePicker({
   imageUri,
   onImageSelected,
-  size = 128,
+  width = 250,
+  height = 160,
   editable = true,
-}: ProfileImagePickerProps) {
+  label
+}: DocumentImagePickerProps) {
   const pickImage = async () => {
     if (!editable) return;
 
@@ -34,18 +38,20 @@ export default function ProfileImagePicker({
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [1, 1],
+      aspect: [4, 3],
       quality: 0.5,
     });
 
     if (!result.canceled && result.assets[0]) {
-      // Return file URI for upload
       onImageSelected(result.assets[0].uri);
     }
   };
 
   return (
-    <View className="items-center">
+    <View className="items-center w-full">
+      {label && (
+        <Text className="text-xs font-bold text-gray-500 mb-2 uppercase self-center">{label}</Text>
+      )}
       <TouchableOpacity
         onPress={pickImage}
         disabled={!editable}
@@ -53,32 +59,32 @@ export default function ProfileImagePicker({
         activeOpacity={0.7}
       >
         <View
-          style={{ width: size, height: size }}
-          className="rounded-full bg-gray-200 items-center justify-center overflow-hidden border-4 border-white shadow-lg"
+          style={{ width, height }}
+          className="bg-gray-100 dark:bg-gray-800 items-center justify-center overflow-hidden border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl"
         >
           {imageUri ? (
             <Image
               source={{ uri: imageUri }}
-              style={{ width: size, height: size }}
-              className="rounded-full"
+              style={{ width, height }}
+              className="rounded-lg"
+              resizeMode="cover"
             />
           ) : (
-            <User size={size * 0.5} color="#9ca3af" />
+            <View className="items-center p-4">
+              <Upload size={32} color="#9ca3af" className="mb-2" />
+              <Text className="text-center text-gray-400 text-xs">
+                Appuyez pour ajouter une photo du document
+              </Text>
+            </View>
           )}
         </View>
         
-        {editable && (
-          <View className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-blue-600 items-center justify-center border-2 border-white shadow-md">
+        {editable && imageUri && (
+          <View className="absolute bottom-[-10px] right-[-10px] w-10 h-10 rounded-full bg-blue-600 items-center justify-center border-2 border-white shadow-md">
             <Camera size={20} color="white" />
           </View>
         )}
       </TouchableOpacity>
-      
-      {editable && (
-        <Text className="text-sm text-gray-500 mt-2">
-          Appuyez pour {imageUri ? 'changer' : 'ajouter'} la photo
-        </Text>
-      )}
     </View>
   );
 }

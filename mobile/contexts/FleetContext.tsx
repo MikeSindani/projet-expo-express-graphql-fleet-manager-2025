@@ -1,18 +1,18 @@
 import { useMutation, useQuery } from "@/lib/graphql-hooks";
 import {
-  CREATE_CHAUFFEUR,
-  CREATE_RAPPORT,
-  CREATE_VEHICULE,
-  DELETE_CHAUFFEUR,
-  DELETE_RAPPORT,
-  DELETE_VEHICULE,
-  GET_CHAUFFEURS,
-  GET_REPORTS,
-  GET_VEHICLES,
-  MANAGE_ORGANIZATION_ACCESS,
-  UPDATE_CHAUFFEUR,
-  UPDATE_RAPPORT,
-  UPDATE_VEHICULE
+    CREATE_CHAUFFEUR,
+    CREATE_RAPPORT,
+    CREATE_VEHICULE,
+    DELETE_CHAUFFEUR,
+    DELETE_RAPPORT,
+    DELETE_VEHICULE,
+    GET_CHAUFFEURS,
+    GET_REPORTS,
+    GET_VEHICLES,
+    MANAGE_ORGANIZATION_ACCESS,
+    UPDATE_CHAUFFEUR,
+    UPDATE_RAPPORT,
+    UPDATE_VEHICULE
 } from "@/lib/graphql-queries";
 import { Chauffeur, Rapport, User, Vehicule } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -39,6 +39,7 @@ interface FleetContextType {
   addRapport: (rapport: any) => Promise<Rapport | any>;
   deleteRapport: (id: string) => Promise<void>;
   manageAccess: (id: string, access: boolean) => Promise<void>;
+  refreshFleetData: (silent?: boolean) => Promise<void>;
 }
 
 const FleetContext = React.createContext<FleetContextType | undefined>(undefined);
@@ -50,9 +51,9 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   // GraphQL Queries
-  const { data: serverChauffeurs } = useQuery(GET_CHAUFFEURS);
-  const { data: serverVehicules } = useQuery(GET_VEHICLES);
-  const { data: serverRapports } = useQuery(GET_REPORTS);
+  const { data: serverChauffeurs, refetch: refetchChauffeurs } = useQuery(GET_CHAUFFEURS);
+  const { data: serverVehicules, refetch: refetchVehicules } = useQuery(GET_VEHICLES);
+  const { data: serverRapports, refetch: refetchRapports } = useQuery(GET_REPORTS);
 
   // GraphQL Mutations
   const [createChauffeurMutation] = useMutation(CREATE_CHAUFFEUR);
@@ -69,10 +70,28 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
   
   const [manageAccessMutation] = useMutation(MANAGE_ORGANIZATION_ACCESS);
 
-  // Initial Load from Local Storage
+  const refreshFleetData = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    try {
+      await Promise.all([
+        refetchChauffeurs(),
+        refetchVehicules(),
+        refetchRapports(),
+      ]);
+    } catch (error) {
+      console.error("Error refreshing fleet data:", error);
+    } finally {
+      if (!silent) setIsLoading(false);
+    }
+  }, [refetchChauffeurs, refetchVehicules, refetchRapports]);
+
+  // Initial Load & Auto Refresh
   useEffect(() => {
     loadLocalData();
-  }, []);
+    // Rafraîchir toutes les 30 secondes pour garder l'interface à jour (silencieusement)
+    const interval = setInterval(() => refreshFleetData(true), 30000);
+    return () => clearInterval(interval);
+  }, [refreshFleetData]);
 
   // Sync Server Data to Local State & Storage
   useEffect(() => {
@@ -122,25 +141,26 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
       const newChauffeur = { ...chauffeur, id: tempId, createdAt: new Date().toISOString() };
       const updated = [...chauffeurs, newChauffeur];
       setChauffeurs(updated);
-      await AsyncStorage.setItem(STORAGE_KEYS.CHAUFFEURS, JSON.stringify(updated));
 
       // 2. Server Sync
       try {
         const result = await createChauffeurMutation(chauffeur);
         // Replace temp ID with real ID from server
-        if (result?.createUser) {
-           const finalUpdated = updated.map(c => c.id === tempId ? result.createUser : c);
+        if (result?.createChauffeur) {
+           const finalUpdated = updated.map(c => c.id === tempId ? result.createChauffeur : c);
            setChauffeurs(finalUpdated);
            await AsyncStorage.setItem(STORAGE_KEYS.CHAUFFEURS, JSON.stringify(finalUpdated));
-           return result.createUser;
+           refreshFleetData(true);
+           return result.createChauffeur;
         }
       } catch (error) {
         console.error("Failed to sync addChauffeur to server:", error);
-        // Keep local version (offline mode)
+        // Rollback optimistic update on error if preferred, or keep as is for offline
+        refreshFleetData(true); // Try to sync again
       }
       return newChauffeur;
     },
-    [chauffeurs, createChauffeurMutation],
+    [chauffeurs, createChauffeurMutation, refreshFleetData],
   );
 
   const updateChauffeur = useCallback(
@@ -151,11 +171,12 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
 
       try {
         await updateChauffeurMutation({ id, ...updates });
+        refreshFleetData(true);
       } catch (error) {
         console.error("Failed to sync updateChauffeur to server:", error);
       }
     },
-    [chauffeurs, updateChauffeurMutation],
+    [chauffeurs, updateChauffeurMutation, refreshFleetData],
   );
 
   const deleteChauffeur = useCallback(
@@ -166,11 +187,12 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
 
       try {
         await deleteChauffeurMutation({ id });
+        refreshFleetData(true);
       } catch (error) {
         console.error("Failed to sync deleteChauffeur to server:", error);
       }
     },
-    [chauffeurs, deleteChauffeurMutation],
+    [chauffeurs, deleteChauffeurMutation, refreshFleetData],
   );
 
   const manageAccess = useCallback(
@@ -181,13 +203,14 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
 
       try {
          await manageAccessMutation({ userId: id, access });
+         refreshFleetData(true);
       } catch (error) {
         console.error("Failed to manage access:", error);
          // rollback locally if needed
-         loadLocalData(); 
+         refreshFleetData(true); 
       }
     },
-    [chauffeurs, manageAccessMutation]
+    [chauffeurs, manageAccessMutation, refreshFleetData]
   );
 
   // --- Vehicules ---
@@ -205,14 +228,16 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
             const finalUpdated = updated.map(v => v.id === tempId ? result.createVehicule : v);
             setVehicules(finalUpdated);
             await AsyncStorage.setItem(STORAGE_KEYS.VEHICULES, JSON.stringify(finalUpdated));
+            refreshFleetData(true);
             return result.createVehicule;
         }
       } catch (error) {
         console.error("Failed to sync addVehicule to server:", error);
+        refreshFleetData(true);
       }
       return newVehicule;
     },
-    [vehicules, createVehiculeMutation],
+    [vehicules, createVehiculeMutation, refreshFleetData],
   );
 
   const updateVehicule = useCallback(
@@ -238,12 +263,14 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
           annee: updatedVehicule.annee,
           statut: updatedVehicule.statut,
         });
+        refreshFleetData(true);
       } catch (error) {
         console.error("Failed to sync updateVehicule to server:", error);
         // Revert optimistic update if needed, or just log error (offline strategy keeps local change)
+        refreshFleetData(true);
       }
     },
-    [vehicules, updateVehiculeMutation],
+    [vehicules, updateVehiculeMutation, refreshFleetData],
   );
 
   const deleteVehicule = useCallback(
@@ -254,11 +281,12 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
 
       try {
         await deleteVehiculeMutation({ id: parseInt(id) });
+        refreshFleetData(true);
       } catch (error) {
         console.error("Failed to sync deleteVehicule to server:", error);
       }
     },
-    [vehicules, deleteVehiculeMutation],
+    [vehicules, deleteVehiculeMutation, refreshFleetData],
   );
 
   // --- Rapports ---
@@ -276,14 +304,16 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
             const finalUpdated = updated.map(r => r.id === tempId ? result.createRapport : r);
             setRapports(finalUpdated);
             await AsyncStorage.setItem(STORAGE_KEYS.RAPPORTS, JSON.stringify(finalUpdated));
+            refreshFleetData(true);
             return result.createRapport;
         }
       } catch (error) {
         console.error("Failed to sync addRapport to server:", error);
+        refreshFleetData(true);
       }
       return newRapport;
     },
-    [rapports, createRapportMutation],
+    [rapports, createRapportMutation, refreshFleetData],
   );
 
 
@@ -311,12 +341,14 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
           chauffeurId: updatedRapport.chauffeurId,
           vehiculeId: updatedRapport.vehiculeId,
         });
+        refreshFleetData(true);
       } catch (error) {
         console.error("Failed to sync updateRapport to server:", error);
         // Revert optimistic update if needed, or just log error (offline strategy keeps local change)
+        refreshFleetData(true);
       }
     },
-    [rapports, updateRapportMutation],
+    [rapports, updateRapportMutation, refreshFleetData],
   );
 
   const deleteRapport = useCallback(
@@ -327,11 +359,12 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
 
       try {
         await deleteRapportMutation({ id: parseInt(id) });
+        refreshFleetData(true);
       } catch (error) {
         console.error("Failed to sync deleteRapport to server:", error);
       }
     },
-    [rapports, deleteRapportMutation],
+    [rapports, deleteRapportMutation, refreshFleetData],
   );
 
   const value = useMemo(
@@ -350,6 +383,7 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
       updateRapport,
       deleteRapport,
       manageAccess,
+      refreshFleetData,
     }),
     [
       chauffeurs,
@@ -366,6 +400,7 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
       updateRapport,
       deleteRapport,
       manageAccess,
+      refreshFleetData,
     ],
   );
 

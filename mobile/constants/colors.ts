@@ -16,13 +16,17 @@ const gray = {
   900: "#111827",
 };
 
-export default {
+export const palette = {
   primary,
   secondary,
   success,
   warning,
   danger,
   gray,
+};
+
+export const lightTheme = {
+  ...palette,
   background: "#ffffff",
   card: "#ffffff",
   text: {
@@ -33,3 +37,19 @@ export default {
   border: gray[200],
   shadow: "rgba(0, 0, 0, 0.1)",
 };
+
+export const darkTheme = {
+  ...palette,
+  background: "#111827",
+  card: "#1f2937",
+  text: {
+    primary: "#ffffff",
+    secondary: gray[400],
+    light: gray[500],
+  },
+  border: gray[700],
+  shadow: "rgba(0, 0, 0, 0.3)",
+};
+
+export default lightTheme;
+

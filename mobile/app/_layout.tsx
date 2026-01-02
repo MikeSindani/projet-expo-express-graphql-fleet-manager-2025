@@ -35,6 +35,9 @@ function RootLayoutNav() {
       <Stack.Screen name="add-report" options={{ presentation: "modal" }} />
       <Stack.Screen name="notifications" options={{ presentation: "modal" }} />
       <Stack.Screen name="search" options={{ presentation: "modal", headerShown: false }} />
+      <Stack.Screen name="driver-detail/[id]" options={{ title: "Détails Chauffeur" }} />
+      <Stack.Screen name="vehicle-detail/[id]" options={{ title: "Détails Véhicule" }} />
+      <Stack.Screen name="report-detail/[id]" options={{ title: "Détails Rapport" }} />
     </Stack>
   );
 }

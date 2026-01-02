@@ -1,6 +1,8 @@
+import { GRAPHQL_URL } from '@/config/graphql-url';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
-const API_URL = process.env.EXPO_PUBLIC_GRAPHQL_HTTP_URL || 'http://10.202.99.10:4001/graphql';
+//const API_URL = process.env.EXPO_PUBLIC_GRAPHQL_HTTP_URL || 'http://192.168.1.217:4001/graphql';
 
 interface GraphQLResponse<T = any> {
   data?: T;
@@ -237,10 +239,84 @@ class GraphQLClient {
       )
     );
   }
+
+  /**
+   * Upload a file to the GraphQL server
+   */
+  async upload(query: string, variables: Record<string, any>): Promise<string> {
+    const token = await AsyncStorage.getItem('token');
+    const formData = new FormData();
+
+    const operations = {
+      query,
+      variables: {
+        ...variables,
+        file: null,
+      },
+    };
+    formData.append('operations', JSON.stringify(operations));
+
+    const map = {
+      '0': ['variables.file'],
+    };
+    formData.append('map', JSON.stringify(map));
+
+    const uri = variables.file;
+    if (!uri) throw new Error('File URI is required in variables.file');
+
+    const filename = uri.split('/').pop() || 'upload.jpg';
+    const match = /\.(\w+)$/.exec(filename);
+    const type = match ? `image/${match[1]}` : 'image/jpeg';
+
+    const file = {
+      uri: Platform.OS === 'android' ? uri : uri.replace('file://', ''),
+      name: filename,
+      type,
+    } as any;
+
+    formData.append('0', file);
+
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(this.baseUrl, {
+        method: 'POST',
+        body: formData,
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const result: GraphQLResponse = await response.json();
+
+      if (result.errors && result.errors.length > 0) {
+        throw new Error(result.errors[0].message);
+      }
+
+      // Automatically find the first field in data as the result
+      if (!result.data) {
+        throw new Error('Upload failed: No data returned');
+      }
+
+      const keys = Object.keys(result.data);
+      return result.data[keys[0]];
+    } catch (error: any) {
+      console.error('❌ Upload failed:', error);
+      throw error;
+    }
+  }
 }
 
 // Export a singleton instance
-export const graphqlClient = new GraphQLClient(API_URL);
+export const graphqlClient = new GraphQLClient(GRAPHQL_URL);
 
 // Export the class for custom instances
 export { GraphQLClient };

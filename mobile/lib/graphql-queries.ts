@@ -127,6 +127,8 @@ export const GET_USER = `
       organizationAccess
       telephone
       licenseNumber
+      licenseExpiryDate
+      licenseImage
       createdAt
       organization {
         id
@@ -145,12 +147,15 @@ export const GET_USER_WITH_ORG = `
       role
       telephone
       licenseNumber
+      licenseExpiryDate
+      licenseImage
       organizationId
       organizationAccess
       organization {
         id
         name
       }
+      image
       createdAt
     }
   }
@@ -182,6 +187,12 @@ export const GET_VEHICLES = `
       modele
       annee
       statut
+      image
+      registrationCardImage
+      driver {
+        id
+        name
+      }
     }
   }
 `;
@@ -249,7 +260,7 @@ export const GET_DASHBOARD_STATS = `
   query GetDashboardStats($id: String) {
     countChauffeur(organizationId: $id)
     countVehicule(organizationId: $id)
-    countActiveVehicule(organizationId: $id)
+    countIndisponibleVehicule(organizationId: $id)
     countRapport(organizationId: $id)
     rapports {
       id
@@ -278,21 +289,30 @@ export const GET_CHAUFFEURS = `
       email
       telephone
       licenseNumber
+      licenseExpiryDate
+      licenseImage
       role
       organizationAccess
+      image
     }
   }
 `;
 
 export const CREATE_VEHICULE = `
-  mutation CreateVehicule($immatriculation: String!, $marque: String!, $modele: String!, $annee: Int!, $userId: String!) {
-    createVehicule(immatriculation: $immatriculation, marque: $marque, modele: $modele, annee: $annee, userId: $userId) {
+  mutation CreateVehicule($immatriculation: String!, $marque: String!, $modele: String!, $annee: Int!, $userId: String!, $driverId: String, $image: String, $registrationCardImage: String) {
+    createVehicule(immatriculation: $immatriculation, marque: $marque, modele: $modele, annee: $annee, userId: $userId, driverId: $driverId, image: $image, registrationCardImage: $registrationCardImage) {
       id
       immatriculation
       marque
       modele
       annee
       statut
+      image
+      registrationCardImage
+      driver {
+        id
+        name
+      }
     }
   }
 `;
@@ -330,7 +350,7 @@ export const CREATE_RAPPORT = `
 
 export const UPDATE_RAPPORT = `
   mutation UpdateRapport($id: Int!, $date: String, $kilometrage: Int, $incidents: String, $commentaires: String, $chauffeurId: String, $vehiculeId: Int) {
-    updateRapport(id: $id, date: $date, kilometrage: $kilometrage, incidents: $incidents, commentaires: $commentaires, chauffeurId: String, vehiculeId: Int) {
+    updateRapport(id: $id, date: $date, kilometrage: $kilometrage, incidents: $incidents, commentaires: $commentaires, chauffeurId: $chauffeurId, vehiculeId: $vehiculeId) {
       id
       date
       kilometrage
@@ -347,8 +367,8 @@ export const DELETE_RAPPORT = `
 `;
 
 export const CREATE_CHAUFFEUR = `
-  mutation CreateChauffeur($name: String!, $email: String, $password: String!, $role: Role!, $telephone: String, $licenseNumber: String, $organizationId: String , $image: String) {
-    createChauffeur(name: $name, email: $email, password: $password, role: $role, telephone: $telephone, licenseNumber: $licenseNumber, organizationId: $organizationId , image: $image) {
+  mutation CreateChauffeur($name: String!, $email: String, $password: String!, $role: Role!, $telephone: String, $licenseNumber: String, $licenseExpiryDate: String, $licenseImage: String, $organizationId: String , $image: String) {
+    createChauffeur(name: $name, email: $email, password: $password, role: $role, telephone: $telephone, licenseNumber: $licenseNumber, licenseExpiryDate: $licenseExpiryDate, licenseImage: $licenseImage, organizationId: $organizationId , image: $image) {
       id
       name
       email
@@ -356,6 +376,8 @@ export const CREATE_CHAUFFEUR = `
       image 
       telephone
       licenseNumber
+      licenseExpiryDate
+      licenseImage
       organizationAccess
       organizationId
     }
@@ -363,8 +385,8 @@ export const CREATE_CHAUFFEUR = `
 `;
 
 export const UPDATE_CHAUFFEUR = `
-  mutation UpdateChauffeur($id: String!, $name: String, $email: String, $password: String, $telephone: String, $role: Role!, $licenseNumber: String, $organizationId: String , $image: String) {
-    updateChauffeur(id: $id, name: $name, email: $email, password: $password, telephone: $telephone, role: $role, licenseNumber: $licenseNumber, organizationId: $organizationId , image: $image) {
+  mutation UpdateChauffeur($id: ID!, $name: String, $email: String, $password: String, $telephone: String, $role: Role, $licenseNumber: String, $licenseExpiryDate: String, $licenseImage: String, $organizationId: String, $image: String) {
+    updateChauffeur(id: $id, name: $name, email: $email, password: $password, telephone: $telephone, role: $role, licenseNumber: $licenseNumber, licenseExpiryDate: $licenseExpiryDate, licenseImage: $licenseImage, organizationId: $organizationId, image: $image) {
       id
       name
       email
@@ -372,6 +394,8 @@ export const UPDATE_CHAUFFEUR = `
       image 
       telephone
       licenseNumber
+      licenseExpiryDate
+      licenseImage
       organizationAccess
       organizationId
     }
@@ -465,6 +489,12 @@ export const NOTIFICATION_RECEIVED = `
 export const LOGOUT = `
   mutation Logout($token: String!) {
     logout(token: $token)
+  }
+`;
+
+export const UPLOAD_FILE = `
+  mutation uploadFile($file: Upload!, $folder: Folder!) {
+    uploadFile(file: $file, folder: $folder)
   }
 `;
 

@@ -11,6 +11,8 @@ export interface User {
   organizationId?: number;
   organizationAccess?: boolean;
   image?: string;
+  licenseExpiryDate?: string;
+  licenseImage?: string;
   organization?: Organization;
 }
 
@@ -20,18 +22,25 @@ export interface Chauffeur {
   email: string;
   telephone: string;
   licenseNumber: string;
+  licenseExpiryDate?: string;
+  licenseImage?: string;
+  image?: string;
   role: "CHAUFFEUR";
   createdAt?: string;
   organizationAccess?: boolean;
 }
 
 export interface Vehicule {
-  id: string;
+  id: number;
   immatriculation: string;
   marque: string;
   modele: string;
   annee: number;
-  statut: "DISPONIBLE" | "EN_COURSE" | "EN_MAINTENANCE";
+  statut: string;
+  driverId?: string;
+  driver?: User;
+  image?: string;
+  registrationCardImage?: string;
   createdAt?: string;
 }
 

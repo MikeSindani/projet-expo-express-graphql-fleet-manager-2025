@@ -1,25 +1,29 @@
 import Header from "@/components/Header";
-import Colors from "@/constants/colors";
+import { darkTheme, lightTheme } from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Tabs } from "expo-router";
 import { BarChart3, Car, FileText, UserCircle, Users } from "lucide-react-native";
 import React from "react";
 
 export default function TabLayout() {
   const auth = useAuth();
+  const { isDark } = useTheme();
   const user = auth?.user;
   const isChauffeur = user?.role === "CHAUFFEUR";
+
+  const activeColors = isDark ? darkTheme : lightTheme;
   
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.gray[500],
+        tabBarActiveTintColor: activeColors.primary,
+        tabBarInactiveTintColor: activeColors.gray[500],
         header: () => <Header />,
         headerShown: true,
         tabBarStyle: {
-          backgroundColor: Colors.card,
-          borderTopColor: Colors.border,
+          backgroundColor: activeColors.card,
+          borderTopColor: activeColors.border,
         },
       }}
     >
@@ -69,3 +73,4 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+

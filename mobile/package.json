@@ -15,7 +15,9 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-picker/picker": "2.11.1",
     "@stardazed/streams-text-encoding": "^1.0.2",
+    "@tanstack/react-form": "^1.27.6",
     "@tanstack/react-query": "^5.83.0",
+    "@tanstack/zod-form-adapter": "^0.42.1",
     "@ungap/structured-clone": "^1.3.0",
     "expo": "~54.0.29",
     "expo-blur": "~15.0.8",
@@ -31,7 +33,9 @@
     "expo-linking": "~8.0.10",
     "expo-location": "~19.0.8",
     "expo-notifications": "~0.32.15",
+    "expo-print": "~15.0.8",
     "expo-router": "~6.0.19",
+    "expo-sharing": "~14.0.8",
     "expo-splash-screen": "~31.0.12",
     "expo-status-bar": "~3.0.9",
     "expo-symbols": "~1.0.8",
@@ -50,6 +54,7 @@
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
     "react-native-web": "^0.21.0",
+    "zod": "^4.2.1",
     "zustand": "^5.0.2"
   },
   "devDependencies": {

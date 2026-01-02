@@ -1,41 +1,45 @@
+import { FormInput } from '@/components/ui/form/FormInput';
 import { graphqlClient } from '@/lib/graphql-client';
 import { FORGOT_PASSWORD } from '@/lib/graphql-queries';
+import { useForm } from '@tanstack/react-form';
+import { zodValidator } from '@tanstack/zod-form-adapter';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Mail } from 'lucide-react-native';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { z } from 'zod';
 
 export default function ForgotPasswordScreen() {
-  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  
+  const form = useForm({
+    defaultValues: {
+      email: '',
+    },
+    validatorAdapter: zodValidator(),
+    onSubmit: async ({ value }) => {
+      setLoading(true);
+      try {
+        const data = await graphqlClient.mutate(FORGOT_PASSWORD, {
+          email: value.email,
+        });
 
-  const handleReset = async () => {
-    if (!email) {
-      Alert.alert('Erreur', 'Veuillez entrer votre adresse email');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const data = await graphqlClient.mutate(FORGOT_PASSWORD, {
-        email,
-      });
-
-      if (data?.forgotPassword) {
-        Alert.alert(
-          'Email envoyé',
-          'Si un compte existe avec cet email, vous recevrez un lien de réinitialisation.',
-          [{ text: 'OK', onPress: () => router.back() }]
-        );
+        if (data?.forgotPassword) {
+          Alert.alert(
+            'Email envoyé',
+            'Si un compte existe avec cet email, vous recevrez un lien de réinitialisation.',
+            [{ text: 'OK', onPress: () => router.back() }]
+          );
+        }
+      } catch (error: any) {
+        Alert.alert('Erreur', error.message || 'Une erreur est survenue');
+      } finally {
+        setLoading(false);
       }
-    } catch (error: any) {
-      Alert.alert('Erreur', error.message || 'Une erreur est survenue');
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+  });
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -59,24 +63,28 @@ export default function ForgotPasswordScreen() {
         </Text>
 
         <View className="mb-6">
-          <Text className="text-sm font-medium text-gray-700 mb-2">
-            Email
-          </Text>
-          <View className="flex-row items-center border border-gray-300 rounded-xl px-4 py-3">
-            <Mail size={20} color="#6b7280" />
-            <TextInput
-              className="flex-1 ml-3 text-base text-gray-900"
-              placeholder="votre@email.com"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!loading}
-            />
-          </View>
+          <form.Field
+            name="email"
+            validators={{
+              onChange: z.string().email("Format d'email invalide"),
+            }}
+          >
+            {(field) => (
+              <FormInput
+                field={field}
+                label="Email"
+                placeholder="votre@email.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                icon={Mail}
+                editable={!loading}
+              />
+            )}
+          </form.Field>
+          
           <TouchableOpacity
             onPress={() => router.push('/auth/forgot-password-phone')}
-            className="self-start"
+            className="self-start mt-2"
           >
             <Text className="text-blue-600 text-sm font-medium">Se connecter avec le numéro de téléphone</Text>
           </TouchableOpacity>
@@ -84,7 +92,7 @@ export default function ForgotPasswordScreen() {
 
         <TouchableOpacity
           className={`rounded-xl p-4 mb-4 ${loading ? 'bg-blue-400' : 'bg-blue-600'}`}
-          onPress={handleReset}
+          onPress={form.handleSubmit}
           disabled={loading}
         >
           {loading ? (
