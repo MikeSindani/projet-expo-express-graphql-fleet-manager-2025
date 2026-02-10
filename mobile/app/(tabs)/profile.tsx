@@ -1,17 +1,20 @@
+import WebLayout from '@/components/web/WebLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useMutation, useQuery } from '@/hooks';
-import { GET_USER_WITH_ORG, UPDATE_PROFILE } from '@/lib/graphql-queries';
+import { GET_USER_WITH_ORG, LOGOUT, UPDATE_PROFILE } from '@/lib/graphql-queries';
+import { imageApi } from '@/lib/imageApi';
 import * as Clipboard from 'expo-clipboard';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { Building2, Copy, Edit2, LogOut, Moon, QrCode, User as UserIcon } from 'lucide-react-native';
-import { useState } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Building2, Camera, Copy, Edit2, LogOut, Moon, QrCode, User as UserIcon } from 'lucide-react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
-  const { user, signOut, updateUser } = useAuth();
+  const { user, token, signOut, updateUser } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -21,6 +24,8 @@ export default function ProfileScreen() {
   const [email, setEmail] = useState(user?.email || '');
   const [password, setPassword] = useState('');
   const [telephone, setTelephone] = useState(user?.telephone || '');
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [logout] = useMutation(LOGOUT);
   // Fetch user with organization
   const { data, loading: loadingData, refetch } = useQuery(GET_USER_WITH_ORG, {
     variables: { id: user?.id },
@@ -76,8 +81,51 @@ export default function ProfileScreen() {
       name,
       email,
       password: password || 'unchanged',
+      image: user.image, // Garder l'image actuelle si non modifiée par cette fonction
       role: user.role,
     });
+  };
+
+  const handlePickAvatar = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission refusée', 'Désolé, nous avons besoin des permissions pour accéder à vos photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets[0].uri && user?.id) {
+      setIsUploadingAvatar(true);
+      try {
+        // Utilisation de uploadMultiple car c'est ce qu'on a implémenté, mais avec un seul fichier
+        const uploadResult = await imageApi.uploadMultiple([result.assets[0].uri], 'chauffeur', user.id);
+        
+        if (uploadResult.images && uploadResult.images.length > 0) {
+          const newAvatarUrl = uploadResult.images[0].url;
+          
+          // Mettre à jour le profil via GraphQL
+          await updateProfile({
+            id: user.id,
+            name: name,
+            email: email,
+            password: 'unchanged',
+            image: newAvatarUrl,
+            role: user.role
+          });
+        }
+      } catch (error) {
+        console.error("Avatar upload failed:", error);
+        Alert.alert('Erreur', "Échec de l'upload de l'avatar");
+      } finally {
+        setIsUploadingAvatar(false);
+      }
+    }
   };
 
   const handleLogout = () => {
@@ -94,9 +142,17 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             setIsLoggingOut(true);
-            await signOut();
-            setIsLoggingOut(false);
-            router.replace('/onboarding');
+            try {
+              if (token) {
+                await logout({ variables: { token: token } });
+              }
+            } catch (error) {
+              console.error('Erreur lors de la déconnexion serveur:', error);
+            } finally {
+              await signOut();
+              setIsLoggingOut(false);
+              router.replace('/onboarding');
+            }
           },
         },
       ]
@@ -141,23 +197,43 @@ export default function ProfileScreen() {
   const hasAccess = !!data?.user?.organizationAccess;
 
   return (
-    <SafeAreaView className={`flex-1 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+    <WebLayout>
+      <SafeAreaView className={`flex-1 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
       <ScrollView className="flex-1 pb-10">
-        {/* Header Section */}
-        <View className={`${isDark ? 'bg-gray-800' : 'bg-white'} px-6 py-8 items-center border-b ${isDark ? 'border-gray-700' : 'border-gray-200'}`}>
-          <View className={`w-24 h-24 rounded-full ${isDark ? 'bg-gray-700' : 'bg-blue-100'} items-center justify-center mb-4`}>
-            <UserIcon size={48} color={isDark ? '#60a5fa' : '#3b82f6'} />
+        <View className="max-w-4xl mx-auto w-full">
+          {/* Header Section */}
+          <View className={`${isDark ? 'bg-gray-800' : 'bg-white'} px-6 py-10 items-center border-b ${isDark ? 'border-gray-700' : 'border-gray-200'} md:rounded-b-[48px] md:shadow-sm`}>
+            <TouchableOpacity 
+              onPress={handlePickAvatar}
+              disabled={isUploadingAvatar}
+              className="relative mb-6"
+            >
+              <View className={`w-32 h-32 rounded-full ${isDark ? 'bg-gray-700' : 'bg-blue-50'} items-center justify-center border-4 ${isDark ? 'border-gray-600' : 'border-white'} shadow-md overflow-hidden`}>
+                {user.image ? (
+                  <Image source={{ uri: user.image }} className="w-full h-full" />
+                ) : (
+                  <UserIcon size={64} color={isDark ? '#60a5fa' : '#3b82f6'} />
+                )}
+              </View>
+              <View className="absolute bottom-1 right-1 bg-blue-600 p-2.5 rounded-full border-4 border-white dark:border-gray-800 shadow-lg">
+                {isUploadingAvatar ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Camera size={18} color="white" />
+                )}
+              </View>
+            </TouchableOpacity>
+            
+            <Text className={`text-3xl font-black ${isDark ? 'text-white' : 'text-gray-900'} mb-2`}>
+              {user.name}
+            </Text>
+            <Text className={`text-lg ${isDark ? 'text-gray-400' : 'text-gray-600'} mb-4 font-medium`}>
+              {user.email}
+            </Text>
+            <View className={`px-6 py-2 rounded-full ${getRoleBadgeColor(user.role)} shadow-sm`}>
+              <Text className="font-bold text-xs uppercase tracking-widest">{getRoleLabel(user.role)}</Text>
+            </View>
           </View>
-          <Text className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'} mb-1`}>
-            {user.name}
-          </Text>
-          <Text className={`${isDark ? 'text-gray-400' : 'text-gray-600'} mb-3`}>
-            {user.email}
-          </Text>
-          <View className={`px-4 py-1.5 rounded-full ${getRoleBadgeColor(user.role)}`}>
-            <Text className="font-semibold text-xs">{getRoleLabel(user.role)}</Text>
-          </View>
-        </View>
 
         <View className="px-4 py-6">
           {/* Organization Card */}
@@ -340,7 +416,8 @@ export default function ProfileScreen() {
           </View>
 
         </View>
-      </ScrollView>
+      </View>
+    </ScrollView>
 
       {/* QR Code Modal */}
       <Modal
@@ -374,6 +451,7 @@ export default function ProfileScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+      </SafeAreaView>
+    </WebLayout>
   );
 }

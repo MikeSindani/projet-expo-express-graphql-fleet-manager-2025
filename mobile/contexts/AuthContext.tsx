@@ -1,3 +1,6 @@
+import { GRAPHQL_URL } from '@/config/graphql-url';
+import { graphqlClient } from '@/lib/graphql-client';
+import { GET_USER, LOGOUT } from '@/lib/graphql-queries';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter, useSegments } from 'expo-router';
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -6,7 +9,8 @@ type User = {
   id: string;
   name: string;
   email: string;
-  telephone :string;
+  telephone: string;
+  image?: string;
   role: 'ADMIN' | 'GESTIONNAIRE' | 'CHAUFFEUR';
   organizationId?: string;
   organization?: {id: string, name: string}
@@ -77,6 +81,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, [user, segments, isLoading]);
+  
+  // ✅ Token validity checker (si le token est vide ou invalide -> logout)
+  useEffect(() => {
+    if (isLoading) return;
+
+    const verifyTokenValidity = async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem('token');
+        
+        // 1. Si le token est vide dans le stockage (mais on a un user en state)
+        if (!storedToken && user) {
+          console.log('🛡️ Token missing in storage, forcing logout...');
+          await signOut();
+          return;
+        }
+
+        // 2. Si on a un user, on vérifie périodiquement sa validité avec le serveur
+        if (user && storedToken) {
+          try {
+            await graphqlClient.request(GET_USER, { id: user.id });
+          } catch (error: any) {
+            const isAuthError = 
+              error.message?.includes('Not authenticated') || 
+              error.message?.includes('authorized') ||
+              error.message?.includes('expired');
+
+            if (isAuthError) {
+              console.log('🛡️ Session invalid or expired on server, forcing logout...');
+              await signOut();
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Error during token verification:', e);
+      }
+    };
+
+    // Vérifier au montage et lors d'un changement d'utilisateur
+    verifyTokenValidity();
+
+    // Vérifier périodiquement toutes les 2 minutes
+    const interval = setInterval(verifyTokenValidity, 2 * 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, [user, isLoading]);
 
   const signIn = async (newToken: string, newUser: User) => {
     setToken(newToken);
@@ -86,10 +135,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    setToken(null);
-    setUser(null);
-    await AsyncStorage.removeItem('token');
-    await AsyncStorage.removeItem('user');
+    try {
+      // 1. Capture token before clearing
+      const currentToken = token;
+
+      // 2. Clear state immediately for best responsiveness
+      setToken(null);
+      setUser(null);
+      
+      // 3. Clear Storage immediately
+      const keysToRemove = [
+        'token', 
+        'user', 
+        'fleet_chauffeurs', 
+        'fleet_vehicules', 
+        'fleet_rapports'
+      ];
+      await AsyncStorage.multiRemove(keysToRemove);
+
+      // 4. Clear TanStack Query Cache
+      const { queryClient } = await import('@/lib/query-client');
+      queryClient.clear();
+
+      // 5. Attempt Background Server Logout (Best Effort)
+      if (currentToken) {
+        // We call fetch directly to avoid the GraphQLClient's automatic header injection
+        // that might cause server-side verification logs before the resolver runs.
+        console.log('Sending silent logout notification to server...');
+        
+        fetch(GRAPHQL_URL, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+            query: LOGOUT,
+            variables: { token: currentToken }
+          })
+        })
+        .then(async (res) => {
+          const result = await res.json();
+          console.log('Server logout background response:', result);
+        })
+        .catch((err) => {
+          console.log('Server logout background call failed (expected if offline/expired):', err.message);
+        });
+      }
+
+    } catch (error) {
+      console.error('Critical error during signOut:', error);
+    } finally {
+      // 6. Final safety: insure everything is null and we are at onboarding
+      setToken(null);
+      setUser(null);
+      await AsyncStorage.multiRemove(['token', 'user']).catch(() => {});
+      router.replace('/onboarding');
+    }
   };
 
   const updateUser = async (updatedUser: User) => {

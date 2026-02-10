@@ -1,6 +1,7 @@
 import DocumentImagePicker from '@/components/DocumentImagePicker';
 import ProfileImagePicker from '@/components/ProfileImagePicker';
 import { FormInput } from '@/components/ui/form/FormInput';
+import WebLayout from '@/components/web/WebLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useFleet } from '@/contexts/FleetContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -11,7 +12,7 @@ import { useForm } from '@tanstack/react-form';
 import { zodValidator } from '@tanstack/zod-form-adapter';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Calendar, Check, Edit2, Key, Mail, Phone, RefreshCw, ShieldAlert, Trash2, X } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Check, Edit2, Key, Mail, Phone, RefreshCw, ShieldAlert, Trash2, X } from 'lucide-react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Image, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -134,8 +135,17 @@ export default function DriverDetailScreen() {
   };
 
   return (
-    <SafeAreaView className={`flex-1 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
-      <ScrollView className="flex-1 px-4 py-6">
+    <WebLayout>
+      <SafeAreaView className={`flex-1 ${isDark ? 'bg-gray-900' : 'bg-gray-50'}`}>
+        <ScrollView className="flex-1 px-4 py-6">
+        <View className="flex-row items-center mb-6">
+          <TouchableOpacity onPress={() => router.back()} className="mr-4 p-2 rounded-full bg-gray-100 dark:bg-gray-800">
+            <ArrowLeft size={24} color={isDark ? '#fff' : '#000'} />
+          </TouchableOpacity>
+          <Text className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>
+            Détails Chauffeur
+          </Text>
+        </View>
 
         <View className={`${isDark ? 'bg-gray-800' : 'bg-white'} rounded-3xl p-6 shadow-sm mb-6`}>
           <View className="items-center mb-6">
@@ -148,15 +158,16 @@ export default function DriverDetailScreen() {
               />
             </View>
             {!isEditing ? (
-              <>
+              <View className="items-center">
                 <Text className={`text-2xl font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>{chauffeur.name}</Text>
-                <View className={`mt-2 px-3 py-1 rounded-full ${chauffeur.organizationAccess ? 'bg-green-100' : 'bg-yellow-100'}`}>
-                  <Text className={`text-xs font-bold ${chauffeur.organizationAccess ? 'text-green-800' : 'text-yellow-800'}`}>
+                <View className={`mt-2 px-3 py-1 rounded-full ${chauffeur.organizationAccess ? 'bg-green-100 dark:bg-green-900/40' : 'bg-yellow-100 dark:bg-yellow-900/40'}`}>
+                  <Text className={`text-xs font-bold ${chauffeur.organizationAccess ? 'text-green-800 dark:text-green-300' : 'text-yellow-800 dark:text-yellow-300'}`}>
                     {chauffeur.organizationAccess ? 'ACTIF' : 'EN ATTENTE / BLOQUÉ'}
                   </Text>
                 </View>
-              </>
+              </View>
             ) : (
+              <View className="w-full">
                 <form.Field
                   name="name"
                   validators={{ onChange: driverSchema.shape.name as any }}
@@ -164,11 +175,12 @@ export default function DriverDetailScreen() {
                     <FormInput
                       field={field}
                       placeholder="Nom complet"
-                      className="text-center text-xl  font-bold"
+                      className="text-center text-2xl font-bold"
                       editable={!isSaving}
                     />
                   )}
                 />
+              </View>
             )}
           </View>
 
@@ -190,9 +202,9 @@ export default function DriverDetailScreen() {
                 />
               ) : (
                 <>
-                  <Text className="text-gray-500 text-xs uppercase font-bold mb-1 ml-1">Email</Text>
+                  <Text className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold mb-1 ml-1">Email</Text>
                   <View className="flex-row items-center p-1">
-                    <Mail size={18} color="#6b7280" />
+                    <Mail size={18} color={isDark ? '#9ca3af' : '#6b7280'} />
                     <Text className={`ml-2 text-lg ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{chauffeur.email}</Text>
                   </View>
                 </>
@@ -216,9 +228,9 @@ export default function DriverDetailScreen() {
                 />
               ) : (
                 <>
-                  <Text className="text-gray-500 text-xs uppercase font-bold mb-1 ml-1">Téléphone</Text>
+                  <Text className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold mb-1 ml-1">Téléphone</Text>
                   <View className="flex-row items-center p-1">
-                    <Phone size={18} color="#6b7280" />
+                    <Phone size={18} color={isDark ? '#9ca3af' : '#6b7280'} />
                     <Text className={`ml-2 text-lg ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{chauffeur.telephone || 'Non renseigné'}</Text>
                   </View>
                 </>
@@ -243,7 +255,7 @@ export default function DriverDetailScreen() {
                 <>
                   <Text className="text-gray-500 text-xs uppercase font-bold mb-1 ml-1">Numéro de Permis</Text>
                   <View className="flex-row items-center p-1">
-                    <ShieldAlert size={18} color="#6b7280" />
+                    <ShieldAlert size={18} color={isDark ? '#9ca3af' : '#6b7280'} />
                     <Text className={`ml-2 text-lg ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{chauffeur.licenseNumber || 'Non renseigné'}</Text>
                   </View>
                 </>
@@ -265,9 +277,9 @@ export default function DriverDetailScreen() {
                 />
               ) : (
                 <>
-                  <Text className="text-gray-500 text-xs uppercase font-bold mb-1 ml-1">Expiration Permis</Text>
+                  <Text className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold mb-1 ml-1">Expiration Permis</Text>
                   <View className="flex-row items-center p-1">
-                    <ShieldAlert size={18} color="#6b7280" />
+                    <ShieldAlert size={18} color={isDark ? '#9ca3af' : '#6b7280'} />
                     <Text className={`ml-2 text-lg ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>{chauffeur.licenseExpiryDate || 'Non renseigné'}</Text>
                   </View>
                 </>
@@ -275,7 +287,7 @@ export default function DriverDetailScreen() {
             </View>
 
             <View className="mt-4">
-              <Text className="text-gray-500 text-xs uppercase font-bold mb-2 ml-1">Photo du Permis</Text>
+              <Text className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold mb-2 ml-1">Photo du Permis</Text>
               {isEditing ? (
                 <View className="items-center">
                   <DocumentImagePicker
@@ -296,7 +308,7 @@ export default function DriverDetailScreen() {
                     />
                   ) : (
                     <View className={`w-full h-40 rounded-xl border-2 border-dashed ${isDark ? 'border-gray-700' : 'border-gray-200'} items-center justify-center`}>
-                       <Text className="text-gray-400">Aucune photo du permis</Text>
+                       <Text className="text-gray-400 dark:text-gray-500">Aucune photo du permis</Text>
                     </View>
                   )}
                 </View>
@@ -380,17 +392,18 @@ export default function DriverDetailScreen() {
 
                   <TouchableOpacity 
                     onPress={handleDelete} 
-                    className="w-full bg-red-100 p-4 rounded-2xl flex-row items-center justify-center"
+                    className="w-full bg-red-100 dark:bg-red-900/20 p-4 rounded-2xl flex-row items-center justify-center"
                   >
                     <Trash2 size={20} color="#ef4444" />
-                    <Text className="text-red-700 font-bold ml-2">Supprimer le chauffeur</Text>
+                    <Text className="text-red-700 dark:text-red-400 font-bold ml-2">Supprimer le chauffeur</Text>
                   </TouchableOpacity>
                 </View>
               )}
             </View>
           )}
         </View>
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </SafeAreaView>
+    </WebLayout>
   );
 }

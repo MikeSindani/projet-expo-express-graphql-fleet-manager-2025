@@ -1,5 +1,6 @@
 import { UseMutationOptions, UseQueryOptions, useMutation as useTanStackMutation, useQuery as useTanStackQuery } from '@tanstack/react-query';
 import { graphqlClient } from './graphql-client';
+export { useSubscription } from '../hooks/useSubscription';
 
 /**
  * Custom hook for GraphQL queries using TanStack Query

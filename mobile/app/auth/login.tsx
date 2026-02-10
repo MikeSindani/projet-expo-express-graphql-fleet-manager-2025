@@ -1,140 +1,174 @@
-import { FormInput } from '@/components/ui/form/FormInput';
-import { FormPasswordInput } from '@/components/ui/form/FormPasswordInput';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { graphqlClient } from '@/lib/graphql-client';
 import { LOGIN } from '@/lib/graphql-queries';
-import { loginSchema } from '@/schemas/auth';
-import { useForm } from '@tanstack/react-form';
-import { zodValidator } from '@tanstack/zod-form-adapter';
 import { useRouter } from 'expo-router';
-import { Mail } from 'lucide-react-native';
-import { useState } from 'react';
-import { ActivityIndicator, Alert, Text, TouchableOpacity, View } from 'react-native';
+import { ArrowLeft, Lock, Mail, Phone, Truck } from 'lucide-react-native';
+import React, { useState } from 'react';
+import {
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function LoginScreen() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
+  const { isDark } = useTheme();
   const router = useRouter();
+  const isWeb = Platform.OS === 'web';
 
-  const form = useForm({
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-    validatorAdapter: zodValidator(),
-    onSubmit: async ({ value }) => {
-      setLoading(true);
-      try {
-        const data = await graphqlClient.mutate(LOGIN, {
-          email: value.email,
-          password: value.password,
-        });
+  const handleLogin = async () => {
+    if (!email || !password) {
+      if (isWeb) alert('Veuillez remplir tous les champs');
+      else Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+      return;
+    }
 
-        if (data?.login) {
-          await signIn(data.login.token, data.login.user);
-        }
-      } catch (error: any) {
-        Alert.alert('Erreur', error.message || 'Connexion échouée');
-      } finally {
-        setLoading(false);
+    setLoading(true);
+    try {
+      const data = await graphqlClient.mutate(LOGIN, {
+        email,
+        password,
+      });
+
+      if (data?.login) {
+        await signIn(data.login.token, data.login.user);
       }
-    },
-  });
+    } catch (error: any) {
+      if (isWeb) alert(error.message || 'Connexion échouée');
+      else Alert.alert('Erreur', error.message || 'Connexion échouée');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-1 items-center justify-center h-12">
-        <Text className="text-3xl font-bold text-blue-900">Fleet Manager</Text>
-      </View>
-      <View className="p-6">
-        {/* Header */}
-        <Text className="text-3xl font-bold text-gray-900 mb-2">
-          Connexion par Email
-        </Text>
-        <Text className="text-gray-600 mb-8">
-          Connectez-vous avec votre adresse email
-        </Text>
+    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1"
+      >
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="flex-1">
+          <View className="flex-1 items-center justify-center p-6 bg-gray-50 dark:bg-gray-950">
+            <View className="max-w-md w-full bg-white dark:bg-gray-900 rounded-[40px] p-8 lg:p-12 shadow-xl border border-gray-100 dark:border-gray-800">
+              
+              {/* Header */}
+              <View className="flex-row items-center justify-between mb-10">
+                <TouchableOpacity 
+                  onPress={() => router.back()}
+                  className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-gray-800 items-center justify-center"
+                >
+                  <ArrowLeft size={20} color={isDark ? '#f3f4f6' : '#111827'} />
+                </TouchableOpacity>
+                <View className="w-10 h-10 rounded-xl bg-blue-600 items-center justify-center">
+                  <Truck size={20} color="white" />
+                </View>
+              </View>
 
-        {/* Email Input */}
-        <form.Field
-          name="email"
-          validators={{
-            onChange: loginSchema.shape.email,
-          }}
-          children={(field) => (
-            <FormInput
-              field={field}
-              label="Email"
-              placeholder="votre@email.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              icon={Mail}
-              editable={!loading}
-            />
-          )}
-        />
+              <View className="mb-10">
+                <Text className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter mb-2">
+                  Connexion <Text className="text-blue-600">Email</Text>
+                </Text>
+                <Text className="text-gray-500 dark:text-gray-400 font-medium leading-relaxed">
+                  Connectez-vous à votre compte Fleet Manager.
+                </Text>
+              </View>
 
-        {/* Password Input */}
-        <form.Field
-          name="password"
-          validators={{
-            onChange: loginSchema.shape.password,
-          }}
-          children={(field) => (
-            <FormPasswordInput
-              field={field}
-              label="Mot de passe"
-              placeholder="Votre mot de passe"
-              editable={!loading}
-            />
-          )}
-        />
-        
-        <TouchableOpacity 
-          onPress={() => router.push('/auth/forgot-password')}
-          className="self-end mb-4"
-        >
-          <Text className="text-blue-600 text-sm font-medium">Mot de passe oublié ?</Text>
-        </TouchableOpacity>
+              {/* Email Input */}
+              <View className="mb-6">
+                <Text className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3" style={{ opacity: isWeb ? 1 : 0.8 }}>
+                  Adresse Email
+                </Text>
+                <View className="flex-row items-center border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-2xl px-5 py-4">
+                  <Mail size={20} color={isDark ? '#9ca3af' : '#6b7280'} />
+                  <TextInput
+                    className="flex-1 ml-4 text-base text-gray-900 dark:text-gray-100 font-medium"
+                    placeholder="votre@email.com"
+                    placeholderTextColor={isDark ? '#4b5563' : '#9ca3af'}
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    editable={!loading}
+                  />
+                </View>
+              </View>
 
-        {/* Login Button */}
-        <TouchableOpacity
-          className={`rounded-xl p-4 mb-4 ${loading ? 'bg-blue-400' : 'bg-blue-600'}`}
-          onPress={form.handleSubmit}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text className="text-white text-center font-semibold text-lg">
-              Se connecter
-            </Text>
-          )}
-        </TouchableOpacity>
+              {/* Password Input */}
+              <View className="mb-10">
+                <Text className="text-xs font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3" style={{ opacity: isWeb ? 1 : 0.8 }}>
+                  Mot de passe
+                </Text>
+                <View className="flex-row items-center border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 rounded-2xl px-5 py-4">
+                  <Lock size={20} color={isDark ? '#9ca3af' : '#6b7280'} />
+                  <TextInput
+                    className="flex-1 ml-4 text-base text-gray-900 dark:text-gray-100 font-medium"
+                    placeholder="••••••••"
+                    placeholderTextColor={isDark ? '#4b5563' : '#9ca3af'}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    editable={!loading}
+                  />
+                </View>
+                <TouchableOpacity 
+                  onPress={() => router.push('/auth/forgot-password' as any)}
+                  className="mt-3 self-end"
+                >
+                  <Text className="text-blue-600 dark:text-blue-400 font-bold text-sm">Mot de passe oublié ?</Text>
+                </TouchableOpacity>
+              </View>
 
-        {/* Register Link */}
-        <View className="flex-row justify-center items-center">
-          <Text className="text-gray-600">Pas encore de compte ? </Text>
-          <TouchableOpacity
-            onPress={() => router.push('/auth/register')}
-            disabled={loading}
-          >
-            <Text className="text-blue-600 font-semibold">S'inscrire</Text>
-          </TouchableOpacity>
-        </View>
+              {/* Submit Button */}
+              <TouchableOpacity
+                className={`rounded-2xl p-5 shadow-lg shadow-blue-500/30 ${loading ? 'bg-blue-400' : 'bg-blue-600'}`}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white text-center font-black text-lg">
+                    Se connecter
+                  </Text>
+                )}
+              </TouchableOpacity>
 
-        {/* Phone Login Link */}
-        <View className="mt-6 pt-6 border-t border-gray-200">
-          <TouchableOpacity
-            onPress={() => router.push('/auth/phone-login')}
-            disabled={loading}
-            className="flex-row justify-center items-center"
-          >
-            <Text className="text-gray-600">Se connecter avec un numéro de téléphone</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+              {/* Phone Login Link */}
+              <TouchableOpacity
+                onPress={() => router.push('/auth/phone-login' as any)}
+                disabled={loading}
+                className="mt-6 py-4 flex-row justify-center items-center bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800"
+              >
+                <Phone size={18} color={isDark ? '#9ca3af' : '#6b7280'} className="mr-2" />
+                <Text className="text-gray-700 dark:text-gray-300 font-bold ml-2">Utiliser le téléphone</Text>
+              </TouchableOpacity>
+
+              {/* Register Link */}
+              <View className="flex-row justify-center items-center mt-8">
+                <Text className="text-gray-500 dark:text-gray-400 font-medium">Pas encore de compte ? </Text>
+                <TouchableOpacity
+                  onPress={() => router.push('/auth/register' as any)}
+                  disabled={loading}
+                >
+                  <Text className="text-blue-600 dark:text-blue-400 font-black">S'inscrire</Text>
+                </TouchableOpacity>
+              </View>
+
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

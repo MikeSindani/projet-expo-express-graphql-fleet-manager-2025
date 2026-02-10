@@ -1,3 +1,4 @@
+import WebLayout from '@/components/web/WebLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@/lib/graphql-hooks';
 import { GET_USER_WITH_ORG } from '@/lib/graphql-queries';
@@ -46,17 +47,18 @@ export default function WaitingScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-yellow-50 items-center px-6 pt-20">
-      <View className="bg-white p-8 rounded-full shadow-sm mb-8">
+    <WebLayout>
+      <SafeAreaView className="flex-1 bg-yellow-50 dark:bg-gray-950 items-center px-6 pt-20">
+      <View className="bg-white dark:bg-gray-900 p-8 rounded-full shadow-sm mb-8">
         <ShieldAlert size={64} color="#eab308" />
       </View>
       
-      <Text className="text-2xl font-bold text-gray-900 text-center mb-4">
+      <Text className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-4">
         Accès en attente
       </Text>
       
-      <Text className="text-gray-600 text-center mb-8 leading-6">
-        Votre demande d'adhésion à <Text className="font-bold">{data?.user?.organization?.name || "l'organisation"}</Text> est en cours de traitement.
+      <Text className="text-gray-600 dark:text-gray-400 text-center mb-8 leading-6">
+        Votre demande d'adhésion à <Text className="font-bold text-gray-900 dark:text-gray-200">{data?.user?.organization?.name || "l'organisation"}</Text> est en cours de traitement.
         {"\n\n"}
         Un administrateur doit valider votre compte avant que vous puissiez accéder à l'application.
       </Text>
@@ -80,19 +82,20 @@ export default function WaitingScreen() {
       
       <TouchableOpacity
         onPress={handleLogout}
-        className="w-full bg-white border border-gray-200 py-4 rounded-xl flex-row items-center justify-center"
+        className="w-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 py-4 rounded-xl flex-row items-center justify-center"
       >
         <LogOut size={20} color="#6b7280" />
-        <Text className="text-gray-600 font-semibold text-lg ml-2">
+        <Text className="text-gray-600 dark:text-gray-300 font-semibold text-lg ml-2">
             Se déconnecter
         </Text>
       </TouchableOpacity>
 
-      <View className="mt-8 bg-blue-50 p-4 rounded-lg">
-          <Text className="text-blue-800 text-xs text-center">
+      <View className="mt-8 bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+          <Text className="text-blue-800 dark:text-blue-300 text-xs text-center">
               ID Compte: {user?.id}
           </Text>
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </WebLayout>
   );
 }

@@ -1,9 +1,10 @@
-import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@/hooks';
+import WebLayout from '@/components/web/WebLayout';
+import { useTheme } from '@/contexts/ThemeContext';
+import { graphqlClient } from '@/lib/graphql-client';
 import { SEARCH_QUERY } from '@/lib/graphql-queries';
 import { useRouter } from 'expo-router';
-import { Car, ChevronRight, FileText, Search, User, X } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
+import { ArrowLeft, Car, FileText, Search, User, X } from 'lucide-react-native';
+import React, { useState } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
@@ -12,83 +13,69 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-
-interface SearchResultType {
-  chauffeurs: any[];
-  vehicules: any[];
-  rapports: any[];
-}
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SearchScreen() {
   const router = useRouter();
-  const { user } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
+  const { isDark } = useTheme();
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState<any>({
+    chauffeurs: [],
+    vehicules: [],
+    rapports: [],
+  });
 
-  // Debounce search query
-  const debounceTimeout = useCallback(
-    (() => {
-      let timeout: NodeJS.Timeout;
-      return (value: string) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-          setDebouncedQuery(value);
-        }, 500);
-      };
-    })(),
-    []
-  );
+  const handleSearch = async (text: string) => {
+    setQuery(text);
+    if (text.length < 2) {
+      setSearchResults({ chauffeurs: [], vehicules: [], rapports: [] });
+      return;
+    }
 
-  const handleSearchChange = (text: string) => {
-    setSearchQuery(text);
-    debounceTimeout(text);
+    setLoading(true);
+    try {
+      const data = await graphqlClient.query(SEARCH_QUERY, { query: text });
+      setSearchResults(data.search);
+    } catch (error) {
+      console.error('Search failed:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // GraphQL search query
-  const { data, loading, error } = useQuery<{ search: SearchResultType }>(
-    SEARCH_QUERY,
-    {
-      variables: {
-        query: debouncedQuery,
-        organizationId: user?.organizationId,
-      },
-      skip: !debouncedQuery || debouncedQuery.trim().length === 0,
-      fetchPolicy: 'network-only',
-    }
-  );
-
-  const searchResults = data?.search;
   const hasResults =
-    searchResults &&
-    (searchResults.chauffeurs.length > 0 ||
-      searchResults.vehicules.length > 0 ||
-      searchResults.rapports.length > 0);
+    searchResults.chauffeurs.length > 0 ||
+    searchResults.vehicules.length > 0 ||
+    searchResults.rapports.length > 0;
 
   return (
-    <View className="flex-1 bg-gray-50 ">
-      {/* Header */}
-      <View className="bg-white  px-4 pt-12 pb-4 border-b border-gray-200 ">
-        <View className="flex-row items-center gap-3">
-          <TouchableOpacity
+    <WebLayout>
+      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-950">
+      {/* Search Header */}
+      <View className="px-6 pb-6 pt-2 bg-white dark:bg-gray-900 shadow-sm rounded-b-[40px]">
+        <View className="flex-row items-center gap-4">
+          <TouchableOpacity 
             onPress={() => router.back()}
-            className="p-2 -ml-2"
+            className="p-3 rounded-2xl bg-gray-50 dark:bg-gray-800"
           >
-            <X size={24} className="text-gray-700 dark:text-gray-300" />
+            <ArrowLeft size={24} color={isDark ? '#fff' : '#1f2937'} />
           </TouchableOpacity>
-
-          <View className="flex-1 flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-lg px-3 py-2">
-            <Search size={20} className="text-gray-400 mr-2" />
+          <View className="flex-1 flex-row items-center bg-gray-50 dark:bg-gray-800 rounded-3xl px-4 py-3 border-2 border-transparent focus:border-blue-500/30">
+            <Search size={22} color="#94a3b8" />
             <TextInput
-              value={searchQuery}
-              onChangeText={handleSearchChange}
-              placeholder="Rechercher chauffeurs, véhicules, rapports..."
-              placeholderTextColor="#9CA3AF"
-              className="flex-1 text-gray-900 dark:text-white text-base"
+              className="flex-1 ml-3 text-lg font-medium text-gray-900 dark:text-gray-100"
+              placeholder="Rechercher tout..."
+              placeholderTextColor="#94a3b8"
+              value={query}
+              onChangeText={handleSearch}
               autoFocus
             />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => handleSearchChange('')}>
-                <X size={18} className="text-gray-400" />
+            {query.length > 0 && (
+              <TouchableOpacity onPress={() => handleSearch('')}>
+                <View className="bg-gray-200 dark:bg-gray-700 p-1 rounded-full">
+                  <X size={16} color={isDark ? '#cbd5e1' : '#64748b'} />
+                </View>
               </TouchableOpacity>
             )}
           </View>
@@ -96,77 +83,58 @@ export default function SearchScreen() {
       </View>
 
       {/* Results */}
-      <ScrollView className="flex-1">
-        {loading && (
-          <View className="flex-1 items-center justify-center py-20">
-            <ActivityIndicator size="large" color="#3B82F6" />
-            <Text className="text-gray-500 dark:text-gray-400 mt-4">
-              Recherche en cours...
+      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+        {loading ? (
+          <View className="py-20 items-center justify-center">
+            <ActivityIndicator size="large" color="#2563eb" />
+            <Text className="mt-4 text-gray-500 font-bold">Recherche en cours...</Text>
+          </View>
+        ) : !hasResults && query.length >= 2 ? (
+          <View className="items-center py-20 px-10">
+            <View className="w-24 h-24 bg-gray-100 dark:bg-gray-900 rounded-full items-center justify-center mb-6">
+               <Search size={40} color="#cbd5e1" />
+            </View>
+            <Text className="text-2xl font-black text-gray-900 dark:text-white text-center mb-2">
+              Désolé
+            </Text>
+            <Text className="text-gray-500 dark:text-gray-400 text-center text-lg leading-6 font-medium">
+              Nous n'avons trouvé aucun résultat pour "{query}"
             </Text>
           </View>
-        )}
-
-        {error && (
-          <View className="flex-1 items-center justify-center py-20">
-            <Text className="text-red-500 text-center px-4">
-              Erreur lors de la recherche
-            </Text>
-          </View>
-        )}
-
-        {!loading && !error && debouncedQuery && !hasResults && (
-          <View className="flex-1 items-center justify-center py-20">
-            <Search size={48} className="text-gray-300 dark:text-gray-600 mb-4" />
-            <Text className="text-gray-500 dark:text-gray-400 text-center px-4">
-              Aucun résultat pour "{debouncedQuery}"
-            </Text>
-          </View>
-        )}
-
-        {!loading && !debouncedQuery && (
-          <View className="flex-1 items-center justify-center py-20">
-            <Search size={48} className="text-gray-300 dark:text-gray-600 mb-4" />
-            <Text className="text-gray-500 dark:text-gray-400 text-center px-4">
-              Commencez à taper pour rechercher
-            </Text>
-          </View>
-        )}
-
-        {!loading && hasResults && searchResults && (
-          <View className="py-4">
+        ) : query.length < 2 ? (
+            <View className="items-center py-20 px-10">
+                <Text className="text-gray-400 font-bold text-lg">Saisissez au moins 2 caractères</Text>
+            </View>
+        ) : (
+          <View className="p-6 pb-20">
             {/* Chauffeurs */}
             {searchResults.chauffeurs.length > 0 && (
-              <View className="mb-6">
-                <Text className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 mb-2">
-                  Chauffeurs ({searchResults.chauffeurs.length})
-                </Text>
+              <View className="mb-8">
+                <View className="flex-row items-center gap-2 mb-4">
+                    <View className="w-1.5 h-6 bg-blue-600 rounded-full" />
+                    <Text className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
+                    Chauffeurs
+                    </Text>
+                </View>
                 {searchResults.chauffeurs.map((chauffeur: any) => (
                   <TouchableOpacity
                     key={chauffeur.id}
-                    className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-100 dark:border-gray-700"
-                    onPress={() => {
-                      // Navigate to driver details
-                      router.push(`/driver-detail/${chauffeur.id}` as any);
-                    }}
+                    activeOpacity={0.8}
+                    className="bg-white dark:bg-gray-900 p-5 rounded-3xl mb-3 shadow-sm border border-gray-100 dark:border-gray-800"
+                    onPress={() => router.push(`/driver-detail/${chauffeur.id}` as any)}
                   >
-                    <View className="flex-row items-center">
-                      <View className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 items-center justify-center mr-3">
-                        <User size={20} className="text-blue-600 dark:text-blue-400" />
+                    <View className="flex-row items-center gap-4">
+                      <View className="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/40 items-center justify-center">
+                        <User size={28} color="#2563eb" />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-gray-900 dark:text-white font-semibold">
+                        <Text className="text-lg font-extrabold text-gray-900 dark:text-gray-100">
                           {chauffeur.name}
                         </Text>
-                        <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                          {chauffeur.email}
+                        <Text className="text-gray-500 dark:text-gray-400 font-medium">
+                          {chauffeur.email || chauffeur.telephone}
                         </Text>
-                        {chauffeur.telephone && (
-                          <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                            {chauffeur.telephone}
-                          </Text>
-                        )}
                       </View>
-                      <ChevronRight size={20} className="text-gray-400" />
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -175,35 +143,32 @@ export default function SearchScreen() {
 
             {/* Véhicules */}
             {searchResults.vehicules.length > 0 && (
-              <View className="mb-6">
-                <Text className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 mb-2">
-                  Véhicules ({searchResults.vehicules.length})
-                </Text>
+              <View className="mb-8">
+                <View className="flex-row items-center gap-2 mb-4">
+                    <View className="w-1.5 h-6 bg-green-600 rounded-full" />
+                    <Text className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
+                    Véhicules
+                    </Text>
+                </View>
                 {searchResults.vehicules.map((vehicule: any) => (
                   <TouchableOpacity
                     key={vehicule.id}
-                    className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-100 dark:border-gray-700"
-                    onPress={() => {
-                      // Navigate to vehicle details
-                      router.push(`/vehicle-detail/${vehicule.id}` as any);
-                    }}
+                    activeOpacity={0.8}
+                    className="bg-white dark:bg-gray-900 p-5 rounded-3xl mb-3 shadow-sm border border-gray-100 dark:border-gray-800"
+                    onPress={() => router.push(`/vehicle-detail/${vehicule.id}` as any)}
                   >
-                    <View className="flex-row items-center">
-                      <View className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 items-center justify-center mr-3">
-                        <Car size={20} className="text-green-600 dark:text-green-400" />
+                    <View className="flex-row items-center gap-4">
+                      <View className="w-14 h-14 rounded-2xl bg-green-50 dark:bg-green-900/40 items-center justify-center">
+                        <Car size={28} color="#16a34a" />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-gray-900 dark:text-white font-semibold">
+                        <Text className="text-lg font-extrabold text-gray-900 dark:text-gray-100">
+                          {vehicule.modele}
+                        </Text>
+                        <Text className="text-gray-500 dark:text-gray-400 font-medium uppercase tracking-widest text-xs">
                           {vehicule.immatriculation}
                         </Text>
-                        <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                          {vehicule.marque} {vehicule.modele} ({vehicule.annee})
-                        </Text>
-                        <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                          Statut: {vehicule.statut}
-                        </Text>
                       </View>
-                      <ChevronRight size={20} className="text-gray-400" />
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -212,37 +177,32 @@ export default function SearchScreen() {
 
             {/* Rapports */}
             {searchResults.rapports.length > 0 && (
-              <View className="mb-6">
-                <Text className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase px-4 mb-2">
-                  Rapports ({searchResults.rapports.length})
-                </Text>
+              <View>
+                <View className="flex-row items-center gap-2 mb-4">
+                    <View className="w-1.5 h-6 bg-orange-600 rounded-full" />
+                    <Text className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">
+                    Rapports
+                    </Text>
+                </View>
                 {searchResults.rapports.map((rapport: any) => (
                   <TouchableOpacity
                     key={rapport.id}
-                    className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-100 dark:border-gray-700"
-                    onPress={() => {
-                      // Navigate to report details
-                      router.push(`/report-detail/${rapport.id}` as any);
-                    }}
+                    activeOpacity={0.8}
+                    className="bg-white dark:bg-gray-900 p-5 rounded-3xl mb-3 shadow-sm border border-gray-100 dark:border-gray-800"
+                    onPress={() => router.push(`/report-detail/${rapport.id}` as any)}
                   >
-                    <View className="flex-row items-center">
-                      <View className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900 items-center justify-center mr-3">
-                        <FileText size={20} className="text-orange-600 dark:text-orange-400" />
+                    <View className="flex-row items-center gap-4">
+                      <View className="w-14 h-14 rounded-2xl bg-orange-50 dark:bg-orange-900/40 items-center justify-center">
+                        <FileText size={28} color="#ea580c" />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-gray-900 dark:text-white font-semibold">
+                        <Text className="text-lg font-extrabold text-gray-900 dark:text-gray-100">
                           Rapport #{rapport.id}
                         </Text>
-                        <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                          {rapport.user?.name} • {rapport.vehicule?.immatriculation}
+                        <Text className="text-gray-500 dark:text-gray-400 font-medium italic" numberOfLines={1}>
+                          {rapport.commentaires || 'Aucun commentaire'}
                         </Text>
-                        {rapport.incidents && (
-                          <Text className="text-gray-500 dark:text-gray-400 text-sm" numberOfLines={1}>
-                            {rapport.incidents}
-                          </Text>
-                        )}
                       </View>
-                      <ChevronRight size={20} className="text-gray-400" />
                     </View>
                   </TouchableOpacity>
                 ))}
@@ -251,6 +211,7 @@ export default function SearchScreen() {
           </View>
         )}
       </ScrollView>
-    </View>
+      </SafeAreaView>
+    </WebLayout>
   );
 }

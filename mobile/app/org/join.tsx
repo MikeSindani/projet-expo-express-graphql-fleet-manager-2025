@@ -1,3 +1,4 @@
+import WebLayout from '@/components/web/WebLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMutation } from '@/hooks';
 import { ADD_USER_TO_ORG } from '@/lib/graphql-queries';
@@ -66,37 +67,39 @@ export default function JoinOrganizationScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white px-6 justify-center">
+    <WebLayout>
+      <SafeAreaView className="flex-1 bg-white dark:bg-gray-950 px-6 justify-center">
       <View className="w-full max-w-sm mx-auto">
         <View className="items-center mb-8">
-          <View className="bg-blue-100 p-4 rounded-full mb-4">
+          <View className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-full mb-4">
             <Users size={48} color="#2563eb" />
           </View>
-          <Text className="text-3xl font-bold text-gray-900 mb-2 text-center">
+          <Text className="text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center">
             Rejoindre une Organisation
           </Text>
-          <Text className="text-gray-600 text-center">
+          <Text className="text-gray-600 dark:text-gray-400 text-center">
             Entrez l'ID de l'organisation ou scannez le QR Code
           </Text>
         </View>
 
         <View className="space-y-4">
           <View>
-            <Text className="text-sm font-medium text-gray-700 mb-1">
+            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               ID de l'Organisation
             </Text>
             <View className="flex-row items-center space-x-2">
               <TextInput
-                className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500"
+                className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 dark:bg-gray-900 dark:text-white focus:border-blue-500"
                 placeholder="ex: 12345"
+                placeholderTextColor="#9ca3af"
                 value={organizationId}
                 onChangeText={setOrganizationId}
               />
               <TouchableOpacity
                 onPress={startScanning}
-                className="bg-gray-100 p-3 rounded-xl border border-gray-200"
+                className="bg-gray-100 dark:bg-gray-900 p-3 rounded-xl border border-gray-200 dark:border-gray-800"
               >
-                <QrCode size={24} color="#4b5563" />
+                <QrCode size={24} color="#6b7280" />
               </TouchableOpacity>
             </View>
           </View>
@@ -153,6 +156,7 @@ export default function JoinOrganizationScreen() {
           </SafeAreaView>
         </View>
       </Modal>
-    </SafeAreaView>
+      </SafeAreaView>
+    </WebLayout>
   );
 }

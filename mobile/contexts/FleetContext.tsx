@@ -1,5 +1,7 @@
-import { useMutation, useQuery } from "@/lib/graphql-hooks";
+import { useAuth } from "@/contexts/AuthContext";
+import { useMutation, useQuery, useSubscription } from "@/lib/graphql-hooks";
 import {
+    CHANGE_STATUT,
     CREATE_CHAUFFEUR,
     CREATE_RAPPORT,
     CREATE_VEHICULE,
@@ -10,9 +12,12 @@ import {
     GET_REPORTS,
     GET_VEHICLES,
     MANAGE_ORGANIZATION_ACCESS,
+    RAPPORT_CREATED,
     UPDATE_CHAUFFEUR,
     UPDATE_RAPPORT,
-    UPDATE_VEHICULE
+    UPDATE_VEHICULE,
+    VEHICULE_CREATED,
+    VEHICULE_UPDATED
 } from "@/lib/graphql-queries";
 import { Chauffeur, Rapport, User, Vehicule } from "@/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -37,9 +42,11 @@ interface FleetContextType {
   updateVehicule: (id: string, updates: Partial<Vehicule>) => Promise<void>;
   deleteVehicule: (id: string) => Promise<void>;
   addRapport: (rapport: any) => Promise<Rapport | any>;
+  updateRapport: (id: string, updates: Partial<Rapport>) => Promise<void>;
   deleteRapport: (id: string) => Promise<void>;
   manageAccess: (id: string, access: boolean) => Promise<void>;
   refreshFleetData: (silent?: boolean) => Promise<void>;
+  changeStatut: (id: number, statut: string) => Promise<void>;
 }
 
 const FleetContext = React.createContext<FleetContextType | undefined>(undefined);
@@ -49,11 +56,21 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
   const [vehicules, setVehicules] = useState<Vehicule[]>([]);
   const [rapports, setRapports] = useState<Rapport[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
+
+  // Reset state when user logs out
+  useEffect(() => {
+    if (!user) {
+      setChauffeurs([]);
+      setVehicules([]);
+      setRapports([]);
+    }
+  }, [user]);
 
   // GraphQL Queries
-  const { data: serverChauffeurs, refetch: refetchChauffeurs } = useQuery(GET_CHAUFFEURS);
-  const { data: serverVehicules, refetch: refetchVehicules } = useQuery(GET_VEHICLES);
-  const { data: serverRapports, refetch: refetchRapports } = useQuery(GET_REPORTS);
+  const { data: serverChauffeurs, refetch: refetchChauffeurs } = useQuery(GET_CHAUFFEURS, { skip: !user });
+  const { data: serverVehicules, refetch: refetchVehicules } = useQuery(GET_VEHICLES, { skip: !user });
+  const { data: serverRapports, refetch: refetchRapports } = useQuery(GET_REPORTS, { skip: !user });
 
   // GraphQL Mutations
   const [createChauffeurMutation] = useMutation(CREATE_CHAUFFEUR);
@@ -69,8 +86,58 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
   const [deleteRapportMutation] = useMutation(DELETE_RAPPORT);
   
   const [manageAccessMutation] = useMutation(MANAGE_ORGANIZATION_ACCESS);
+  const [changeStatutMutation] = useMutation(CHANGE_STATUT);
+
+  // Real-time Subscriptions
+  useSubscription({
+    query: RAPPORT_CREATED,
+    enabled: !!user?.organizationId,
+    onData: (data: any) => {
+      const newRapport = data?.rapportCreated;
+      if (newRapport) {
+        setRapports((prev) => {
+          if (prev.some(r => r.id === newRapport.id)) return prev;
+          const updated = [newRapport, ...prev];
+          AsyncStorage.setItem(STORAGE_KEYS.RAPPORTS, JSON.stringify(updated));
+          return updated;
+        });
+      }
+    },
+  });
+
+  useSubscription({
+    query: VEHICULE_CREATED,
+    enabled: !!user?.organizationId,
+    onData: (data: any) => {
+      const newVehicule = data?.vehiculeCreated;
+      if (newVehicule) {
+        setVehicules((prev) => {
+          if (prev.some(v => v.id === newVehicule.id)) return prev;
+          const updated = [newVehicule, ...prev];
+          AsyncStorage.setItem(STORAGE_KEYS.VEHICULES, JSON.stringify(updated));
+          return updated;
+        });
+      }
+    },
+  });
+
+  useSubscription({
+    query: VEHICULE_UPDATED,
+    enabled: !!user?.organizationId,
+    onData: (data: any) => {
+      const updatedVehicule = data?.vehiculeUpdated;
+      if (updatedVehicule) {
+        setVehicules((prev) => {
+          const updated = prev.map(v => v.id === updatedVehicule.id ? { ...v, ...updatedVehicule } : v);
+          AsyncStorage.setItem(STORAGE_KEYS.VEHICULES, JSON.stringify(updated));
+          return updated;
+        });
+      }
+    },
+  });
 
   const refreshFleetData = useCallback(async (silent = false) => {
+    if (!user) return;
     if (!silent) setIsLoading(true);
     try {
       await Promise.all([
@@ -85,11 +152,11 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refetchChauffeurs, refetchVehicules, refetchRapports]);
 
-  // Initial Load & Auto Refresh
+  // Initial Load & Auto Refresh (Fallback)
   useEffect(() => {
     loadLocalData();
-    // Rafraîchir toutes les 30 secondes pour garder l'interface à jour (silencieusement)
-    const interval = setInterval(() => refreshFleetData(true), 30000);
+    // Rafraîchir toutes les 5 minutes au lieu de 30 secondes pour garder l'interface à jour (silencieusement)
+    const interval = setInterval(() => refreshFleetData(true), 300000);
     return () => clearInterval(interval);
   }, [refreshFleetData]);
 
@@ -242,14 +309,14 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
 
   const updateVehicule = useCallback(
     async (id: string, updates: Partial<Vehicule>) => {
-      const existingVehicule = vehicules.find((v) => v.id === id);
+      const existingVehicule = vehicules.find((v) => String(v.id) === String(id));
       if (!existingVehicule) {
         console.error("Vehicle not found for update:", id);
         return;
       }
 
       const updatedVehicule = { ...existingVehicule, ...updates };
-      const updatedList = vehicules.map((v) => (v.id === id ? updatedVehicule : v));
+      const updatedList = vehicules.map((v) => (String(v.id) === String(id) ? updatedVehicule : v));
       setVehicules(updatedList);
       await AsyncStorage.setItem(STORAGE_KEYS.VEHICULES, JSON.stringify(updatedList));
 
@@ -275,7 +342,7 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
 
   const deleteVehicule = useCallback(
     async (id: string) => {
-      const updated = vehicules.filter((v) => v.id !== id);
+      const updated = vehicules.filter((v) => String(v.id) !== String(id));
       setVehicules(updated);
       await AsyncStorage.setItem(STORAGE_KEYS.VEHICULES, JSON.stringify(updated));
 
@@ -287,6 +354,22 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [vehicules, deleteVehiculeMutation, refreshFleetData],
+  );
+
+  const changeStatut = useCallback(
+    async (id: number, statut: string) => {
+      const updated = vehicules.map((v) => (String(v.id) === String(id) ? { ...v, statut } : v));
+      setVehicules(updated);
+      await AsyncStorage.setItem(STORAGE_KEYS.VEHICULES, JSON.stringify(updated));
+
+      try {
+        await changeStatutMutation({ id: id, statut });
+        refreshFleetData(true);
+      } catch (error) {
+        console.error("Failed to sync changeStatut to server:", error);
+      }
+    },
+    [vehicules, changeStatutMutation, refreshFleetData],
   );
 
   // --- Rapports ---
@@ -334,9 +417,9 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
         // Backend requires all fields for update
         await updateRapportMutation({
           id: parseInt(id),
-          incident: updatedRapport.incidents,
+          incidents: updatedRapport.incidents,
           kilometrage: updatedRapport.kilometrage,
-          commentaire: updatedRapport.commentaires,
+          commentaires: updatedRapport.commentaires,
           date: updatedRapport.date,
           chauffeurId: updatedRapport.chauffeurId,
           vehiculeId: updatedRapport.vehiculeId,
@@ -384,6 +467,7 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
       deleteRapport,
       manageAccess,
       refreshFleetData,
+      changeStatut,
     }),
     [
       chauffeurs,
@@ -401,6 +485,7 @@ export function FleetProvider({ children }: { children: React.ReactNode }) {
       deleteRapport,
       manageAccess,
       refreshFleetData,
+      changeStatut,
     ],
   );
 

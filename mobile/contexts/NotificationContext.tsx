@@ -1,4 +1,5 @@
-import { useSubscription } from '@/hooks/useSubscription';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/hooks';
 import { graphqlClient } from '@/lib/graphql-client';
 import { GET_NOTIFICATIONS, MARK_ALL_NOTIFICATIONS_READ, MARK_NOTIFICATION_READ, NOTIFICATION_RECEIVED } from '@/lib/graphql-queries';
 import {
@@ -28,8 +29,11 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [permissionsGranted, setPermissionsGranted] = useState(false);
+  const { user } = useAuth();
 
   const fetchNotifications = async () => {
+    if (!user?.organizationId) return;
+
     try {
       const data = await graphqlClient.query<{ notifications: Notification[] }>(GET_NOTIFICATIONS);
       if (data?.notifications) {
@@ -46,9 +50,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       setPermissionsGranted(granted || false);
     });
 
-    // Fetch initial notifications
-    fetchNotifications();
-
     // Listen for notification interactions
     const receivedSubscription = addNotificationReceivedListener((notification) => {
       console.log('Notification received:', notification);
@@ -64,35 +65,37 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     };
   }, []);
 
-  // Use the custom useSubscription hook for GraphQL subscriptions
+
+  // GraphQL Subscription for real-time updates
   useSubscription<{ notificationReceived: Notification }>({
     query: NOTIFICATION_RECEIVED,
-    enabled: true,
+    enabled: !!user?.organizationId,
     onData: (data: { notificationReceived: Notification }) => {
-      const notification = data?.notificationReceived;
-      if (notification) {
-        // Add to local notifications list
-        setNotifications((prev) => [
-          { ...notification, read: false },
-          ...prev,
-        ]);
-
-        // Show system notification if permissions granted
-        if (permissionsGranted) {
-          scheduleLocalNotification(
-            'Fleet Manager Pro',
-            notification.message
-          );
-        }
-      }
+       const notification = data?.notificationReceived;
+       console.log('🔔 Real-time notification received:', notification);
+       if (notification) {
+         setNotifications((prev) => [{ ...notification, read: false }, ...prev]);
+         if (permissionsGranted) {
+           scheduleLocalNotification('Fleet Manager Pro', notification.message);
+         }
+       }
     },
-    onError: (error: any) => {
-      console.error('Subscription error:', error);
-    },
-    onComplete: () => {
-      console.log('Subscription complete');
-    },
+    onError: (error) => console.log('Subscription error (ignored):', error),
   });
+
+  useEffect(() => {
+    if (!user?.organizationId) return;
+
+    // Initial fetch
+    fetchNotifications();
+
+    // Occasional refetch as fallback (every 2 minutes instead of 30s)
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 120000);
+
+    return () => clearInterval(interval);
+  }, [user?.organizationId]);
 
   const markAsRead = async (id: string) => {
     // Optimistic update

@@ -1,3 +1,4 @@
+import { useTheme } from '@/contexts/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, User } from 'lucide-react-native';
 import React from 'react';
@@ -16,6 +17,7 @@ export default function ProfileImagePicker({
   size = 128,
   editable = true,
 }: ProfileImagePickerProps) {
+  const { isDark } = useTheme();
   const pickImage = async () => {
     if (!editable) return;
 
@@ -54,7 +56,7 @@ export default function ProfileImagePicker({
       >
         <View
           style={{ width: size, height: size }}
-          className="rounded-full bg-gray-200 items-center justify-center overflow-hidden border-4 border-white shadow-lg"
+          className="rounded-full bg-gray-200 dark:bg-gray-800 items-center justify-center overflow-hidden border-4 border-white dark:border-gray-800 shadow-lg"
         >
           {imageUri ? (
             <Image
@@ -63,12 +65,12 @@ export default function ProfileImagePicker({
               className="rounded-full"
             />
           ) : (
-            <User size={size * 0.5} color="#9ca3af" />
+            <User size={size * 0.5} color={isDark ? '#4b5563' : '#9ca3af'} />
           )}
         </View>
         
         {editable && (
-          <View className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-blue-600 items-center justify-center border-2 border-white shadow-md">
+          <View className="absolute bottom-0 right-0 w-10 h-10 rounded-full bg-blue-600 items-center justify-center border-2 border-white dark:border-gray-800 shadow-md">
             <Camera size={20} color="white" />
           </View>
         )}

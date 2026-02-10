@@ -193,6 +193,10 @@ export const GET_VEHICLES = `
         id
         name
       }
+      images {
+        id
+        url
+      }
     }
   }
 `;
@@ -205,16 +209,24 @@ export const GET_REPORTS = `
       kilometrage
       incidents
       commentaires
+      vehiculeId
+      chauffeurId
+      type
+      images {
+        id
+        url
+      }
     }
   }
 `;
 
 export const UPDATE_PROFILE = `
-  mutation UpdateProfile($id: String!, $name: String!, $email: String!, $password: String!, $role: Role!) {
-    updateProfile(id: $id, name: $name, email: $email, password: $password, role: $role) {
+  mutation UpdateProfile($id: String!, $name: String!, $email: String!, $password: String!, $image: String, $role: Role!) {
+    updateProfile(id: $id, name: $name, email: $email, password: $password, image: $image, role: $role) {
       id
       name
       email
+      image
       role
       telephone
       licenseNumber
@@ -337,13 +349,14 @@ export const DELETE_VEHICULE = `
 `;
 
 export const CREATE_RAPPORT = `
-  mutation CreateRapport($date: String, $kilometrage: Int!, $incidents: String, $commentaires: String, $chauffeurId: String!, $vehiculeId: Int!) {
-    createRapport(date: $date, kilometrage: $kilometrage, incidents: $incidents, commentaires: $commentaires, chauffeurId: $chauffeurId, vehiculeId: $vehiculeId) {
+  mutation CreateRapport($date: String, $kilometrage: Int!, $incidents: String, $commentaires: String, $type: String, $chauffeurId: String!, $vehiculeId: Int!) {
+    createRapport(date: $date, kilometrage: $kilometrage, incidents: $incidents, commentaires: $commentaires, type: $type, chauffeurId: $chauffeurId, vehiculeId: $vehiculeId) {
       id
       date
       kilometrage
       incidents
       commentaires
+      type
     }
   }
 `;
@@ -486,6 +499,63 @@ export const NOTIFICATION_RECEIVED = `
   }
 `;
 
+export const RAPPORT_CREATED = `
+  subscription RapportCreated {
+    rapportCreated {
+      id
+      date
+      incidents
+      kilometrage
+      commentaires
+      chauffeurId
+      vehiculeId
+      user {
+        id
+        name
+      }
+      vehicule {
+        id
+        marque
+        modele
+      }
+    }
+  }
+`;
+
+export const VEHICULE_UPDATED = `
+  subscription VehiculeUpdated {
+    vehiculeUpdated {
+      id
+      immatriculation
+      marque
+      modele
+      statut
+      annee
+      driverId
+    }
+  }
+`;
+
+export const VEHICULE_CREATED = `
+  subscription VehiculeCreated {
+    vehiculeCreated {
+      id
+      immatriculation
+      marque
+      modele
+      statut
+      annee
+      driverId
+    }
+  }
+`;
+
+export const STATS_UPDATED = `
+  subscription StatsUpdated {
+    statsUpdated
+  }
+`;
+
 export const LOGOUT = `
   mutation Logout($token: String!) {
     logout(token: $token)
@@ -495,6 +565,15 @@ export const LOGOUT = `
 export const UPLOAD_FILE = `
   mutation uploadFile($file: Upload!, $folder: Folder!) {
     uploadFile(file: $file, folder: $folder)
+  }
+`;
+
+export const CHANGE_STATUT = `
+  mutation ChangeStatut($id: Int!, $statut: String!) {
+    changeStatut(id: $id, statut: $statut) {
+      id
+      statut
+    }
   }
 `;
 

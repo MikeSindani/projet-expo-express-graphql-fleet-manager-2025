@@ -2,9 +2,9 @@ import { darkTheme, lightTheme } from "@/constants/colors";
 import { useNotifications } from "@/contexts/NotificationContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
-import { Bell, Search } from "lucide-react-native";
+import { Bell, Plus, Search } from "lucide-react-native";
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Platform, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function Header() {
@@ -30,6 +30,17 @@ export default function Header() {
         </View>
 
         <View className="flex-row items-center gap-4">
+          {Platform.OS === 'web' && (
+            <View className="flex-row items-center gap-2 mr-4 border-r border-gray-200 dark:border-gray-700 pr-4">
+               <TouchableOpacity 
+                 onPress={() => router.push("/add-report")}
+                 className="bg-blue-600 px-4 py-2 rounded-xl flex-row items-center gap-2"
+               >
+                  <Plus size={16} color="white" />
+                  <Text className="text-white font-bold text-sm">Nouveau Rapport</Text>
+               </TouchableOpacity>
+            </View>
+          )}
           <TouchableOpacity className="p-1" onPress={() => router.push("/search")}>
             <Search size={24} color={activeColors.text.primary} />
           </TouchableOpacity>

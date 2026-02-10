@@ -40,6 +40,7 @@ export interface Vehicule {
   driverId?: string;
   driver?: User;
   image?: string;
+  images?: { id: number; url: string }[];
   registrationCardImage?: string;
   createdAt?: string;
 }
@@ -52,5 +53,7 @@ export interface Rapport {
   kilometrage: number;
   incidents: string;
   commentaires: string;
+  type?: string;
+  images?: { id: number; url: string }[];
   createdAt?: string;
 }

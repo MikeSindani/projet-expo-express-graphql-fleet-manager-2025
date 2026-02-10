@@ -33,11 +33,19 @@ export default function App() {
 
   // If user is authenticated
   if (user) {
-    console.log('✅ User authenticated, redirecting to tabs');
-    // If user is GESTIONNAIRE without organization, redirect to create org
-    if (user.role === 'GESTIONNAIRE' && !user.organizationId) {
-      return <Redirect href="/org/create" />;
+    console.log('✅ User authenticated, checking organization status');
+    
+    // If user has no organizationId, redirect based on role
+    if (!user.organizationId) {
+      if (user.role === 'GESTIONNAIRE') {
+        console.log('Redirecting GESTIONNAIRE to org create');
+        return <Redirect href="/org/create" />;
+      } else if (user.role === 'CHAUFFEUR') {
+        console.log('Redirecting CHAUFFEUR to org join');
+        return <Redirect href="/org/join" />;
+      }
     }
+    
     // Otherwise, redirect to main app
     return <Redirect href="/(tabs)" />;
   }

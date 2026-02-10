@@ -1,4 +1,4 @@
-import { GRAPHQL_URL } from "@/services/api";
+import { GRAPHQL_URL } from "@/config/graphql-url";
 
 /**
  * Normalizes an image path to a full URL if needed.

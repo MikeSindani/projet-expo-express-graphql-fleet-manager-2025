@@ -1,3 +1,4 @@
+import { useTheme } from '@/contexts/ThemeContext';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, Upload } from 'lucide-react-native';
 import React from 'react';
@@ -20,6 +21,7 @@ export default function DocumentImagePicker({
   editable = true,
   label
 }: DocumentImagePickerProps) {
+  const { isDark } = useTheme();
   const pickImage = async () => {
     if (!editable) return;
 
@@ -71,8 +73,8 @@ export default function DocumentImagePicker({
             />
           ) : (
             <View className="items-center p-4">
-              <Upload size={32} color="#9ca3af" className="mb-2" />
-              <Text className="text-center text-gray-400 text-xs">
+              <Upload size={32} color={isDark ? '#4b5563' : '#9ca3af'} className="mb-2" />
+              <Text className="text-center text-gray-400 dark:text-gray-500 text-xs">
                 Appuyez pour ajouter une photo du document
               </Text>
             </View>
@@ -80,7 +82,7 @@ export default function DocumentImagePicker({
         </View>
         
         {editable && imageUri && (
-          <View className="absolute bottom-[-10px] right-[-10px] w-10 h-10 rounded-full bg-blue-600 items-center justify-center border-2 border-white shadow-md">
+          <View className="absolute bottom-[-10px] right-[-10px] w-10 h-10 rounded-full bg-blue-600 items-center justify-center border-2 border-white dark:border-gray-800 shadow-md">
             <Camera size={20} color="white" />
           </View>
         )}

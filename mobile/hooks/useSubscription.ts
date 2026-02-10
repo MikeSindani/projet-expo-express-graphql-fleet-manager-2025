@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Client, createClient } from 'graphql-ws';
 import { useEffect, useRef, useState } from 'react';
 
@@ -58,10 +59,8 @@ export function useSubscription<T = any>(
       wsClient.current = createClient({
         url: wsUrl,
         connectionParams: async () => {
-          // Add authentication token if needed
-          // const token = await AsyncStorage.getItem('token');
-          // return token ? { authToken: token } : {};
-          return {};
+          const token = await AsyncStorage.getItem('token');
+          return token ? { authorization: `Bearer ${token}` } : {};
         },
         shouldRetry: () => {
           const shouldContinue = retryCount < MAX_RETRIES;

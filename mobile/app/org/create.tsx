@@ -1,3 +1,4 @@
+import WebLayout from '@/components/web/WebLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMutation } from '@/hooks';
 import { CREATE_ORGANIZATION } from '@/lib/graphql-queries';
@@ -41,28 +42,30 @@ export default function CreateOrganizationScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white px-6 justify-center">
+    <WebLayout>
+      <SafeAreaView className="flex-1 bg-white dark:bg-gray-950 px-6 justify-center">
       <View className="w-full max-w-sm mx-auto">
         <View className="items-center mb-8">
-          <View className="bg-blue-100 p-4 rounded-full mb-4">
+          <View className="bg-blue-100 dark:bg-blue-900/30 p-4 rounded-full mb-4">
             <Building2 size={48} color="#2563eb" />
           </View>
-          <Text className="text-3xl font-bold text-gray-900 mb-2 text-center">
+          <Text className="text-3xl font-bold text-gray-900 dark:text-white mb-2 text-center">
             Configuration Organisation
           </Text>
-          <Text className="text-gray-600 text-center">
+          <Text className="text-gray-600 dark:text-gray-400 text-center">
             Créez votre organisation ou rejoignez-en une existante
           </Text>
         </View>
 
         <View className="space-y-4">
           <View>
-            <Text className="text-sm font-medium text-gray-700 mb-1">
+            <Text className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Nom de l'Organisation
             </Text>
             <TextInput
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500"
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-800 dark:bg-gray-900 dark:text-white focus:border-blue-500"
               placeholder="ex: Acme Logistics"
+              placeholderTextColor="#9ca3af"
               value={name}
               onChangeText={setName}
             />
@@ -83,22 +86,23 @@ export default function CreateOrganizationScreen() {
           </TouchableOpacity>
 
           <View className="flex-row items-center my-4">
-            <View className="flex-1 h-px bg-gray-200" />
-            <Text className="mx-4 text-gray-500 text-sm">OU</Text>
-            <View className="flex-1 h-px bg-gray-200" />
+            <View className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
+            <Text className="mx-4 text-gray-500 dark:text-gray-400 text-sm">OU</Text>
+            <View className="flex-1 h-px bg-gray-200 dark:bg-gray-800" />
           </View>
 
           <TouchableOpacity
             onPress={() => router.push('/org/join')}
-            className="w-full bg-gray-100 py-4 rounded-xl items-center flex-row justify-center gap-2"
+            className="w-full bg-gray-100 dark:bg-gray-900 py-4 rounded-xl items-center flex-row justify-center gap-2"
           >
-            <Users size={20} color="#4b5563" />
-            <Text className="text-gray-700 font-semibold text-base">
+            <Users size={20} color="#6b7280" />
+            <Text className="text-gray-700 dark:text-gray-300 font-semibold text-base">
               Rejoindre une Organisation
             </Text>
           </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+      </SafeAreaView>
+    </WebLayout>
   );
 }

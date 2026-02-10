@@ -1,16 +1,18 @@
+import LandingPage from '@/components/web/LandingPage';
 import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Href, useRouter } from 'expo-router';
 import { ClipboardList, ShieldCheck, Truck, Users } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import {
-  Animated,
-  Dimensions,
-  FlatList,
-  ImageBackground,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Dimensions,
+    FlatList,
+    ImageBackground,
+    Platform,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -68,6 +70,10 @@ export default function OnboardingScreen() {
   const skip = () => {
     router.push('/auth/phone-login' as Href);
   };
+
+  if (Platform.OS === 'web') {
+    return <LandingPage />;
+  }
 
   return (
     <ImageBackground 
