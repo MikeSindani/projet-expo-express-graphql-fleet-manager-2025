@@ -1,5 +1,6 @@
 import WebLayout from '@/components/web/WebLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSettings } from '@/contexts/SettingsContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useMutation, useQuery } from '@/hooks';
 import { GET_USER_WITH_ORG, LOGOUT, UPDATE_PROFILE } from '@/lib/graphql-queries';
@@ -7,7 +8,7 @@ import { imageApi } from '@/lib/imageApi';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { Building2, Camera, Copy, Edit2, LogOut, Moon, QrCode, User as UserIcon } from 'lucide-react-native';
+import { Building2, Camera, Copy, Edit2, FileText, LogOut, Moon, QrCode, User as UserIcon } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { ActivityIndicator, Alert, Image, Modal, ScrollView, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
@@ -16,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function ProfileScreen() {
   const { user, token, signOut, updateUser } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const { pdfTemplate, setPdfTemplate } = useSettings();
   const router = useRouter();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -80,6 +82,7 @@ export default function ProfileScreen() {
       id: user.id,
       name,
       email,
+      telephone,  
       password: password || 'unchanged',
       image: user.image, // Garder l'image actuelle si non modifiée par cette fonction
       role: user.role,
@@ -114,6 +117,7 @@ export default function ProfileScreen() {
             id: user.id,
             name: name,
             email: email,
+            telephone,
             password: 'unchanged',
             image: newAvatarUrl,
             role: user.role
@@ -278,7 +282,7 @@ export default function ProfileScreen() {
                 </View>
 
                 {hasAccess && (
-                  <View className="space-y-3">
+                  <View className="space-y-3 gap-y-3">
                     <View className="flex-row gap-3">
                       <TouchableOpacity
                         onPress={async () => {
@@ -346,6 +350,14 @@ export default function ProfileScreen() {
                   />
                 </View>
                 <View>
+                  <Text className="text-gray-500 mb-1 ml-1 text-xs uppercase font-bold">Téléphone</Text>
+                  <TextInput
+                    value={telephone}
+                    onChangeText={setTelephone}
+                    className={`p-4 rounded-xl border ${isDark ? 'bg-gray-700 border-gray-600 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`}
+                  />
+                </View>
+                <View>
                   <Text className="text-gray-500 mb-1 ml-1 text-xs uppercase font-bold">Mot de passe</Text>
                   <TextInput
                     value={password}
@@ -409,6 +421,49 @@ export default function ProfileScreen() {
                 thumbColor={isDark ? '#60a5fa' : '#f3f4f6'}
               />
             </View>
+
+            {/* PDF Template Picker */}
+            <View className="p-4 border-b border-gray-100 dark:border-gray-700">
+              <View className="flex-row items-center mb-3">
+                <FileText size={20} color={isDark ? '#fff' : '#6b7280'} />
+                <Text className={`ml-3 font-medium ${isDark ? 'text-white' : 'text-gray-900'}`}>Modèle de Rapport PDF</Text>
+              </View>
+              <View className="flex-row gap-3">
+                <TouchableOpacity
+                  onPress={() => setPdfTemplate('classic')}
+                  className={`flex-1 rounded-xl border-2 p-3 items-center ${
+                    pdfTemplate === 'classic'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                      : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'
+                  }`}
+                >
+                  <Text className={`text-2xl mb-1`}>📋</Text>
+                  <Text className={`text-xs font-bold ${
+                    pdfTemplate === 'classic' ? 'text-blue-600' : (isDark ? 'text-gray-300' : 'text-gray-700')
+                  }`}>Classique</Text>
+                  <Text className={`text-xs mt-1 text-center ${
+                    isDark ? 'text-gray-400' : 'text-gray-500'
+                  }`}>Bleu & cartes</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setPdfTemplate('modern')}
+                  className={`flex-1 rounded-xl border-2 p-3 items-center ${
+                    pdfTemplate === 'modern'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                      : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'
+                  }`}
+                >
+                  <Text className={`text-2xl mb-1`}>🖤</Text>
+                  <Text className={`text-xs font-bold ${
+                    pdfTemplate === 'modern' ? 'text-blue-600' : (isDark ? 'text-gray-300' : 'text-gray-700')
+                  }`}>Moderne</Text>
+                  <Text className={`text-xs mt-1 text-center ${
+                    isDark ? 'text-gray-400' : 'text-gray-500'
+                  }`}>Sombre & tableau</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <TouchableOpacity onPress={handleLogout} className="flex-row items-center p-4">
               <LogOut size={20} color="#ef4444" />
               <Text className="ml-3 font-medium text-red-500">Se déconnecter</Text>

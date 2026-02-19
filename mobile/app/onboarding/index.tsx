@@ -77,7 +77,7 @@ export default function OnboardingScreen() {
 
   return (
     <ImageBackground 
-      source={require('@/assets/images/fleet-background.png')}
+      source={require('@/assets/images/fleet_background.jpg')}
       style={{ flex: 1 }}
       resizeMode="cover"
     >

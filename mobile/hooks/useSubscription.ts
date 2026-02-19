@@ -48,8 +48,9 @@ export function useSubscription<T = any>(
     }
 
     // Get WebSocket URL from environment variables
-    const wsUrl =
-      process.env.EXPO_PUBLIC_GRAPHQL_WS_URL || 'ws://192.168.1.217:4001/graphql';
+    const wsUrl = __DEV__
+      ? process.env.EXPO_PUBLIC_GRAPHQL_WS_URL_DEV || 'ws://192.168.1.217:4001/graphql'
+      : process.env.EXPO_PUBLIC_GRAPHQL_WS_URL_PROD || 'wss://projet-express-apploserver-graphql.onrender.com/graphql';
 
     // Create WebSocket client if not already created
     if (!wsClient.current) {

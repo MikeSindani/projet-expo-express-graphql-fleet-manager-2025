@@ -1,0 +1,16 @@
+# Ignore node_modules
+node_modules/
+.expo/
+dist/
+web-build/
+
+# Ignore server directory
+../server/
+
+# Ignore large text files
+llms-full.txt
+tsc_output.txt
+
+# Ignore local env files
+.env*.local
+.env

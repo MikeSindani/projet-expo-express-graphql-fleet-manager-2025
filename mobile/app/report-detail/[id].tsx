@@ -2,7 +2,9 @@ import { useAuth } from '@/contexts/AuthContext';
 // Force reload
 import WebLayout from '@/components/web/WebLayout';
 import { useFleet } from '@/contexts/FleetContext';
+import { useSettings } from '@/contexts/SettingsContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { generatePdfHtml } from '@/lib/pdf-templates';
 import { getImageUrl } from '@/utils/images';
 import * as Print from 'expo-print';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -17,6 +19,7 @@ export default function ReportDetailScreen() {
   const { rapports, chauffeurs, vehicules, updateRapport, deleteRapport, isLoading } = useFleet();
   const { user } = useAuth();
   const { isDark } = useTheme();
+  const { pdfTemplate } = useSettings();
   const router = useRouter();
 
   const rapport = rapports.find(r => String(r.id) === String(id));
@@ -119,61 +122,23 @@ export default function ReportDetailScreen() {
   };
 
   const printReport = async () => {
-    const html = `
-      <html>
-        <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
-          <style>
-            body { font-family: 'Helvetica'; padding: 20px; color: #333; }
-            h1 { color: #3b82f6; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
-            .section { margin-bottom: 20px; }
-            .label { font-weight: bold; color: #666; font-size: 12px; text-transform: uppercase; }
-            .value { font-size: 16px; margin-top: 5px; }
-            .grid { display: flex; flex-wrap: wrap; }
-            .col { flex: 1; min-width: 200px; margin-bottom: 15px; }
-            .footer { margin-top: 50px; font-size: 10px; color: #999; text-align: center; }
-          </style>
-        </head>
-        <body>
-          <h1>Rapport d'Activité FleetManager</h1>
-          <div class="section">
-            <div class="label">Date & Type</div>
-            <div class="value">${new Date(rapport.date).toLocaleDateString("fr-FR", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} - <span style="color: #3b82f6;">${rapport.type || 'INCIDENT'}</span></div>
-          </div>
-          <div class="grid">
-            <div class="col">
-              <div class="label">Chauffeur</div>
-              <div class="value">${chauffeur?.name || 'Inconnu'}</div>
-            </div>
-            <div class="col">
-              <div class="label">Véhicule</div>
-              <div class="value">${vehicule ? `${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})` : 'Inconnu'}</div>
-            </div>
-          </div>
-          <div class="section">
-            <div class="label">Distance parcourue</div>
-            <div class="value">${rapport.kilometrage} km</div>
-          </div>
-          <div class="section">
-            <div class="label">Incidents</div>
-            <div class="value">${rapport.incidents || 'Aucun incident signalé'}</div>
-          </div>
-          <div class="section">
-            <div class="label">Commentaires</div>
-            <div class="value">${rapport.commentaires || 'Aucun commentaire'}</div>
-          </div>
-          <div class="footer">
-            Généré par FleetManager App le ${new Date().toLocaleString()}
-          </div>
-        </body>
-      </html>
-    `;
+    const html = generatePdfHtml(pdfTemplate, {
+      date: rapport.date,
+      type: rapport.type,
+      kilometrage: rapport.kilometrage,
+      incidents: rapport.incidents,
+      commentaires: rapport.commentaires,
+      chauffeurName: chauffeur?.name || 'Inconnu',
+      vehiculeInfo: vehicule
+        ? `${vehicule.marque} ${vehicule.modele} (${vehicule.immatriculation})`
+        : 'Inconnu',
+    });
 
     try {
       const { uri } = await Print.printToFileAsync({ html });
       await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
     } catch (error) {
-      Alert.alert("Erreur", "Impossible de générer le PDF.");
+      Alert.alert('Erreur', 'Impossible de générer le PDF.');
     }
   };
 

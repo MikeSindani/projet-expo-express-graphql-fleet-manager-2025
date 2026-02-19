@@ -8,7 +8,7 @@ export interface User {
   name: string;
   email: string;
   role: "ADMIN" | "GESTIONNAIRE" | "CHAUFFEUR";
-  organizationId?: number;
+  organizationId?: string;
   organizationAccess?: boolean;
   image?: string;
   licenseExpiryDate?: string;

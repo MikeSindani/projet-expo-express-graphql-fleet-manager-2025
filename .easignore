@@ -1,0 +1,13 @@
+# Ignore the server directory
+server/
+
+# Ignore node_modules
+node_modules/
+
+# Ignore other non-mobile related files
+.git/
+.expo/
+dist/
+web-build/
+llms-full.txt
+tsc_output.txt

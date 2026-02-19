@@ -146,6 +146,15 @@ export default function PhoneLoginScreen() {
                 Utiliser plutôt votre <Text className="text-blue-600 font-bold italic">email</Text>
               </Text>
             </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => router.push('/auth/phone-register' as Href)}
+              className="mt-4 items-center"
+            >
+              <Text className="text-gray-500 dark:text-gray-400 font-medium tracking-tight">
+                Pas de compte ? <Text className="text-blue-600 font-bold">Inscrivez-vous</Text>
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>

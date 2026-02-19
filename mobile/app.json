@@ -2,7 +2,7 @@
   "expo": {
     "name": "Fleet Manager Pro",
     "slug": "fleet-manager-pro-57n0msp",
-    "version": "1.0.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "rork-app",

@@ -1,6 +1,7 @@
 import { AuthProvider } from "@/contexts/AuthContext";
 import { FleetProvider } from "@/contexts/FleetContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { SettingsProvider } from "@/contexts/SettingsContext";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { queryClient } from "@/lib/query-client";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -50,6 +51,7 @@ function RootLayoutNav() {
       <Stack.Screen name="driver-detail/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="vehicle-detail/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="report-detail/[id]" options={{ headerShown: false }} /> 
+      {/* Forced update */} 
     </Stack>
   );
 }
@@ -61,6 +63,7 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <SettingsProvider>
       <ThemeProvider>
         <AuthProvider>
           <FleetProvider>
@@ -74,6 +77,7 @@ export default function RootLayout() {
           </FleetProvider>
         </AuthProvider>
       </ThemeProvider>
+      </SettingsProvider>
     </QueryClientProvider>
   );
 }

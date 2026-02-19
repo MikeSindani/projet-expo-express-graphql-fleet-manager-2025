@@ -1,13 +1,11 @@
 import Header from "@/components/Header";
-import SideBar from "@/components/SideBar";
 import { darkTheme, lightTheme } from "@/constants/colors";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Tabs } from "expo-router";
 import { BarChart3, Car, FileText, UserCircle, Users } from "lucide-react-native";
 import React from "react";
-import { useWindowDimensions, View } from "react-native";
-import { Platform } from "react-native";
+import { Platform, useWindowDimensions, View } from "react-native";
 
 export default function TabLayout() {
   const auth = useAuth();
@@ -18,6 +16,10 @@ export default function TabLayout() {
   const isChauffeur = role === "CHAUFFEUR";
 
   const isDesktop = width >= 768; // md breakpoint
+  console.log('[TabsLayout] Role detected:', role, 'isChauffeur:', isChauffeur);
+  console.log('[TabsLayout] User details:', JSON.stringify(user));
+  console.log('[TabsLayout] Width:', width, 'isDesktop:', isDesktop);
+
   const activeColors = isDark ? darkTheme : lightTheme;
   
   return (
@@ -36,6 +38,7 @@ export default function TabLayout() {
               borderTopColor: activeColors.border,
               display: isDesktop ? 'none' : 'flex'
             },
+            tabBarHideOnKeyboard: true,
           }}
         >
           <Tabs.Screen

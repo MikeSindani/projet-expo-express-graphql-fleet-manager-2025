@@ -9,18 +9,20 @@ import { useRouter } from "expo-router";
 import * as Sharing from 'expo-sharing';
 import { AlertCircle, Download, FileText, Plus } from "lucide-react-native";
 import React, { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Platform, RefreshControl, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ReportsScreen() {
   const { rapports, chauffeurs, vehicules, refreshFleetData } = useFleet();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { isDark } = useTheme();
   const router = useRouter();
   const [isExporting, setIsExporting] = useState(false);
 
+  console.log('[ReportsScreen] Rendering for role:', user?.role);
+
   const exportToExcel = async () => {
-    if (!user?.token) {
+    if (!token) {
       Alert.alert("Erreur", "Vous devez être connecté pour exporter les rapports.");
       return;
     }
@@ -28,30 +30,48 @@ export default function ReportsScreen() {
     setIsExporting(true);
     try {
       const apiUrl = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.217:4001';
-      const fileUri = `${FileSystem.documentDirectory}rapports-flotte.xlsx`;
-
-      const downloadRes = await FileSystem.downloadAsync(
-        `${apiUrl}/api/reports/export`,
-        fileUri,
-        {
+      
+      if (Platform.OS === 'web') {
+        const response = await fetch(`${apiUrl}/api/reports/export`, {
           headers: {
-            'Authorization': `Bearer ${user.token}`,
+            'Authorization': `Bearer ${token}`,
           },
-        }
-      );
-
-      if (downloadRes.status !== 200) {
-        throw new Error("Erreur lors du téléchargement du fichier");
-      }
-
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(downloadRes.uri, {
-          mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-          dialogTitle: 'Exporter les rapports Excel',
-          UTI: 'com.microsoft.excel.xlsx',
         });
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'rapports-flotte.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
       } else {
-        Alert.alert("Succès", "Le fichier a été téléchargé dans vos documents.");
+        const fileUri = `${FileSystem.cacheDirectory}rapports-flotte-${Date.now()}.xlsx`;
+
+        const downloadRes = await FileSystem.downloadAsync(
+          `${apiUrl}/api/reports/export`,
+          fileUri,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (downloadRes.status !== 200) {
+          throw new Error("Erreur lors du téléchargement du fichier (Status: " + downloadRes.status + ")");
+        }
+
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(downloadRes.uri, {
+            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            dialogTitle: 'Exporter les rapports Excel',
+            UTI: 'com.microsoft.excel.xlsx',
+          });
+        } else {
+          Alert.alert("Succès", "Le fichier a été téléchargé : " + downloadRes.uri);
+        }
       }
     } catch (error: any) {
       console.error("Export error:", error);
@@ -59,6 +79,7 @@ export default function ReportsScreen() {
     } finally {
       setIsExporting(false);
     }
+
   };
 
 

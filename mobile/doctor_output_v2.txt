@@ -1,0 +1,28 @@
+env: load .env
+env: export EXPO_PUBLIC_GRAPHQL_HTTP_URL_DEV EXPO_PUBLIC_GRAPHQL_HTTP_URL_PROD EXPO_PUBLIC_GRAPHQL_WS_URL_DEV EXPO_PUBLIC_GRAPHQL_WS_URL_PROD EXPO_PUBLIC_GRAPHQL_HTTP_URL EXPO_PUBLIC_GRAPHQL_WS_URL
+Running 17 checks on your project...
+Unexpected error while running 'Check Expo config (app.json/ app.config.js) schema' check:
+TypeError: fetch failed
+ConnectTimeoutError: Connect Timeout Error
+This check requires a connection to the Expo API. Ensure your network connection is stable.
+15/17 checks passed. 2 checks failed. Possible issues detected:
+Use the --verbose flag to see more details about passed checks.
+
+✖ Check Expo config (app.json/ app.config.js) schema
+✖ Check that no duplicate dependencies are installed
+Your project contains duplicate native module dependencies, which should be de-duplicated.
+Native builds may only contain one version of any given native module, and having multiple versions of a single Native module installed may lead to unexpected build errors.
+Found duplicates for expo-constants:
+  ├─ expo-constants@18.0.13 (at: node_modules\expo-constants)
+  ├─ expo-constants@18.0.13 (at: node_modules\expo\node_modules\expo-constants)
+  └─ expo-constants@18.0.13 (at: node_modules\expo-asset\node_modules\expo-constants)
+Found duplicates for expo-font:
+  ├─ expo-font@14.0.11 (at: node_modules\expo-font)
+  └─ expo-font@14.0.11 (at: node_modules\expo\node_modules\expo-font)
+Advice:
+Your node_modules folder may be corrupted. Multiple copies of the same version exist for: expo-constants, expo-font.
+- Try deleting your node_modules folders and reinstall your dependencies after.
+- If this error persists, delete your node_modules as well as your lockfile and reinstall.
+Resolve your dependency issues and deduplicate your dependencies. Learn more: https://expo.fyi/resolving-dependency-issues
+
+2 checks failed, indicating possible issues with the project.
